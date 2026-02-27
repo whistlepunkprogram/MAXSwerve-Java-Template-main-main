@@ -8,8 +8,8 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.PS4Controller.Button;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 /*
  * This class is where the bulk of the robot should be declared.  Since Command-based is a
@@ -41,7 +42,8 @@ public class RobotContainer {
   private final CommandXboxController m_driverController = new CommandXboxController(0);
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
 
-    private final SendableChooser<Command> m_autoChooser;
+  private final SendableChooser<Command> m_autoChooser;
+
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -53,6 +55,28 @@ public class RobotContainer {
     m_FeederSubsystem = new FeederSubsystem();
     m_LeftClimberSubsystem = new LeftClimberSubsystem();
     m_RightClimberSubsystem = new RightClimberSubsystem();
+
+    // Set up auto commands
+    NamedCommands.registerCommand(
+        "autoIntake",
+        Commands.parallel(
+            m_IntakeShooterSubsystem.autoSlowIntakeCommand(),
+            m_FeederSubsystem.autoReverseFeederCommand()));
+    NamedCommands.registerCommand(
+        "autoShoot",
+        Commands.parallel(
+            m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
+            m_FeederSubsystem.autoFeederCommand()));
+    NamedCommands.registerCommand(
+        "autoOutake",
+        Commands.parallel(
+            m_IntakeShooterSubsystem.autoReverseIntakeShooterCommand(),
+            m_FeederSubsystem.autoFeederCommand()));
+
+    // Register individual commands for backward compatibility with PathPlanner
+    NamedCommands.registerCommand(
+        "autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
+    NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
 
     
     configureButtonBindings();
