@@ -60,14 +60,14 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   public Command autoSlowIntakeCommand() {
     return Commands.sequence(
         Commands.runOnce(() -> intakeShooterMotor.set(-0.35), this), // Start intake at 30% speed
-        Commands.waitSeconds(6), // Wait for 6.0 seconds
+        Commands.waitSeconds(12), // Wait for 12.0 seconds
         Commands.runOnce(() -> intakeShooterMotor.set(0), this));
   }
   // auto command for path planner to shoot fuel that are already loaded.
   public Command autoIntakeShooterCommand() {
     return Commands.sequence(
         Commands.runOnce(() -> intakeShooterMotor.set(0.9), this), // Start intake at 90% speed
-        Commands.waitSeconds(6), // Wait for 6.0 seconds
+        Commands.waitSeconds(12), // Wait for 12.0 seconds
         Commands.runOnce(() -> intakeShooterMotor.set(0), this));
   }
   // auto command for path planner to reverse the intake/shooter to send fuel into outpost.

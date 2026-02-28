@@ -21,15 +21,15 @@
                 }
               },
               {
-                "type": "wait",
-                "data": {
-                  "waitTime": 0.3
-                }
-              },
-              {
                 "type": "named",
                 "data": {
                   "name": "autoFeederCommand"
+                }
+              },
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "RightSideJiggle"
                 }
               }
             ]

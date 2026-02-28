@@ -44,7 +44,7 @@ public class FeederSubsystem extends SubsystemBase {
   public Command autoFeederCommand() {
     return Commands.sequence(
         Commands.runOnce(() -> feederMotor.set(-0.6), this),
-        Commands.waitSeconds(5),
+        Commands.waitSeconds(11),
         Commands.runOnce(() -> feederMotor.set(0), this));
   }
 

@@ -14,8 +14,6 @@ import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
-import frc.robot.subsystems.LeftClimberSubsystem;
-import frc.robot.subsystems.RightClimberSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -35,8 +33,6 @@ public class RobotContainer {
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
-  private final LeftClimberSubsystem m_LeftClimberSubsystem;
-  private final RightClimberSubsystem m_RightClimberSubsystem;
 
   // Controller
   private final CommandXboxController m_driverController = new CommandXboxController(0);
@@ -53,8 +49,7 @@ public class RobotContainer {
 
     m_IntakeShooterSubsystem = new IntakeShooterSubsystem();
     m_FeederSubsystem = new FeederSubsystem();
-    m_LeftClimberSubsystem = new LeftClimberSubsystem();
-    m_RightClimberSubsystem = new RightClimberSubsystem();
+
 
     // Set up auto commands
     NamedCommands.registerCommand(
@@ -168,30 +163,7 @@ public class RobotContainer {
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
 
-    // Climber controls: left stick up/down drives both climbers in parallel.
-    double climberDeadband = 0.2;
-    Command climberUp =
-        Commands.parallel(
-            m_LeftClimberSubsystem.runLeftClimberCommand(),
-            m_RightClimberSubsystem.runRightClimberCommand());
-    Command climberDown =
-        Commands.parallel(
-            m_LeftClimberSubsystem.reverseLeftClimberCommand(),
-            m_RightClimberSubsystem.reverseRightClimberCommand());
-    Command climberStop =
-        Commands.parallel(
-            m_LeftClimberSubsystem.stopLeftClimberCommand(),
-            m_RightClimberSubsystem.stopRightClimberCommand());
 
-    m_operatorController
-        .axisLessThan(XboxController.Axis.kLeftY.value, -climberDeadband)
-        .whileTrue(climberUp)
-        .onFalse(climberStop);
-
-    m_operatorController
-        .axisGreaterThan(XboxController.Axis.kLeftY.value, climberDeadband)
-        .whileTrue(climberDown)
-        .onFalse(climberStop);
   }        
 
 
