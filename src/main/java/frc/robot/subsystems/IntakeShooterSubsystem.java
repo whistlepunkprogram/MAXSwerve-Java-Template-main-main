@@ -42,7 +42,7 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   // Unjam shooter by reversing the motor.
   public Command runUnjamShooterCommand() {
     return Commands.runOnce(
-        () -> intakeShooterMotor.set(-.95),
+        () -> intakeShooterMotor.set(-1),
         this); // -.95 is the speed the intake will spin in reverse.
   }
 
