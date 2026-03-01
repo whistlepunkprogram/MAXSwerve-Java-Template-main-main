@@ -16,16 +16,16 @@
     },
     {
       "anchor": {
-        "x": 2.3632028469750903,
-        "y": 2.2328351126927632
+        "x": 2.2465897435897455,
+        "y": 2.5000769230769233
       },
       "prevControl": {
-        "x": 2.942416819119526,
-        "y": 2.308532507990868
+        "x": 2.2349615384615396,
+        "y": 2.9186923076923086
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "EndOfRightSideJiggle"
+      "linkedName": null
     }
   ],
   "rotationTargets": [],

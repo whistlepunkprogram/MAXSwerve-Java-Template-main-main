@@ -25,11 +25,30 @@
                 "data": {
                   "name": "autoFeederCommand"
                 }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "RightSideJiggle"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "autoIntakeShooterCommand"
+                }
               },
               {
-                "type": "path",
+                "type": "named",
                 "data": {
-                  "pathName": "RightSideJiggle"
+                  "name": "autoFeederCommand"
                 }
               }
             ]
