@@ -14,6 +14,7 @@ import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
+import frc.robot.subsystems.Blinken_LED_Subsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -33,6 +34,7 @@ public class RobotContainer {
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
+  private final Blinken_LED_Subsystem m_blinkenLEDSubsystem = new Blinken_LED_Subsystem();
 
   // Controller
   private final CommandXboxController m_driverController = new CommandXboxController(0);
@@ -117,6 +119,8 @@ public class RobotContainer {
         .rightBumper()
         .onTrue(
             new ParallelCommandGroup(
+                 m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
                 m_IntakeShooterSubsystem.runSlowIntakeCommand(),
                 m_FeederSubsystem.reverseFeederCommand()))
         .onFalse(
@@ -131,6 +135,8 @@ public class RobotContainer {
         .rightTrigger()
         .onTrue(
             new ParallelCommandGroup(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.STROBE_GOLD),
                 m_IntakeShooterSubsystem.runIntakeShooterCommand(),
                 Commands.waitSeconds(0.2).andThen(m_FeederSubsystem.reverseFeederCommand())))
         .onFalse(
@@ -144,6 +150,8 @@ public class RobotContainer {
         .leftTrigger()
         .onTrue(
             new ParallelCommandGroup(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
                 m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
                 m_FeederSubsystem.runFeederCommand()))
         .onFalse(
