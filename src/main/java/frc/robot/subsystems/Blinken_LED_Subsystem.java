@@ -104,7 +104,7 @@ public class Blinken_LED_Subsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    boolean colorUpdate = false;
+    boolean colorUpdate = true; 
     if (m_alliance == null) {
       Optional<Alliance> aOpt = DriverStation.getAlliance();
       if (aOpt.isPresent()) {

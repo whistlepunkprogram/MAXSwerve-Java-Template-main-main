@@ -158,6 +158,7 @@ public class RobotContainer {
             Commands.parallel(
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
+     
 
     // Attempt to unjam shooter by reversing the motor.
     m_operatorController
