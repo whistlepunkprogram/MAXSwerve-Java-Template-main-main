@@ -125,6 +125,8 @@ public class RobotContainer {
                 m_FeederSubsystem.reverseFeederCommand()))
         .onFalse(
             Commands.parallel(
+                 m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
 
@@ -136,11 +138,13 @@ public class RobotContainer {
         .onTrue(
             new ParallelCommandGroup(
                 m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.STROBE_GOLD),
+                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
                 m_IntakeShooterSubsystem.runIntakeShooterCommand(),
                 Commands.waitSeconds(0.2).andThen(m_FeederSubsystem.reverseFeederCommand())))
         .onFalse(
             Commands.parallel(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_FeederSubsystem.stopFeederCommand(),
                 Commands.waitSeconds(0.2)
                     .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand())));
@@ -151,11 +155,13 @@ public class RobotContainer {
         .onTrue(
             new ParallelCommandGroup(
                 m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+                Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
                 m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
                 m_FeederSubsystem.runFeederCommand()))
         .onFalse(
             Commands.parallel(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
      
@@ -165,10 +171,14 @@ public class RobotContainer {
         .leftBumper()
         .onTrue(
             new ParallelCommandGroup(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
                 m_IntakeShooterSubsystem.runUnjamShooterCommand(),
                 m_FeederSubsystem.runFeederCommand()))
         .onFalse(
             Commands.parallel(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
 

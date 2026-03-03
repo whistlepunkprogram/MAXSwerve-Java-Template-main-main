@@ -104,7 +104,7 @@ public class Blinken_LED_Subsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    boolean colorUpdate = true; 
+    boolean colorUpdate = false; 
     if (m_alliance == null) {
       Optional<Alliance> aOpt = DriverStation.getAlliance();
       if (aOpt.isPresent()) {
@@ -129,7 +129,7 @@ public class Blinken_LED_Subsystem extends SubsystemBase {
           if (m_alliance == Alliance.Blue) {
             setLEDColor(LEDColor.SOLID_BLUE);
           } else if (m_alliance == Alliance.Red) {
-            setLEDColor(LEDColor.SOLID_GREEN); // choose green for red-neutral 
+            setLEDColor(LEDColor.SOLID_RED); // choose red for red-neutral 
           } else {
             setLEDColor(LEDColor.RAINBOW);
           }
