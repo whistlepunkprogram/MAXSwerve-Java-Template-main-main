@@ -36,13 +36,13 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   // Shooter speed for shooting fuel
   public Command runIntakeShooterCommand() {
     return Commands.runOnce(
-        () -> intakeShooterMotor.set(.9), this); // .9 is the speed the intake will spin.
+        () -> intakeShooterMotor.set(.95), this); // .9 is the speed the intake will spin.
   }
 
   // Unjam shooter by reversing the motor.
   public Command runUnjamShooterCommand() {
     return Commands.runOnce(
-        () -> intakeShooterMotor.set(-1),
+        () -> intakeShooterMotor.set(-.95),
         this); // -.95 is the speed the intake will spin in reverse.
   }
 

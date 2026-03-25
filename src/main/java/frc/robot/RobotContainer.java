@@ -140,14 +140,40 @@ public class RobotContainer {
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.STROBE_RED),
                 m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-                Commands.waitSeconds(0.2).andThen(m_FeederSubsystem.reverseFeederCommand())))
+                Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
         .onFalse(
             Commands.parallel(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_FeederSubsystem.stopFeederCommand(),
-                Commands.waitSeconds(0.2)
+                Commands.waitSeconds(0.8)
                     .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand())));
+
+        m_operatorController
+        .x()
+        .onTrue(
+            new ParallelCommandGroup(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+                m_IntakeShooterSubsystem.runIntakeShooterCommand()))
+        .onFalse(
+            Commands.parallel(
+                m_blinkenLEDSubsystem.setColorCommand(
+                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+               m_IntakeShooterSubsystem.stopIntakeShooterCommand()));
+
+    m_operatorController
+        .a()
+        .onTrue(
+            new ParallelCommandGroup(
+                m_blinkenLEDSubsystem.setColorCommand(
+                    Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+                m_FeederSubsystem.reverseFeederCommand()))
+        .onFalse(
+            Commands.parallel(
+                m_blinkenLEDSubsystem.setColorCommand(
+                    Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+                m_FeederSubsystem.stopFeederCommand()));
 
     // Intake and spin feeder to load FUEL while holding LEFT Trigger button
     m_operatorController
