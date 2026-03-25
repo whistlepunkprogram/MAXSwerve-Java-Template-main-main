@@ -15,6 +15,7 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
 import frc.robot.subsystems.Blinken_LED_Subsystem;
+import frc.robot.subsystems.JustShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -33,6 +34,7 @@ public class RobotContainer {
   // The robot's subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
+    private final JustShooterSubsystem m_justShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
   private final Blinken_LED_Subsystem m_blinkenLEDSubsystem = new Blinken_LED_Subsystem();
 
@@ -50,8 +52,8 @@ public class RobotContainer {
     // Configure the button bindings
 
     m_IntakeShooterSubsystem = new IntakeShooterSubsystem();
+    m_justShooterSubsystem = new JustShooterSubsystem();
     m_FeederSubsystem = new FeederSubsystem();
-
 
     // Set up auto commands
     NamedCommands.registerCommand(
@@ -63,6 +65,7 @@ public class RobotContainer {
         "autoShoot",
         Commands.parallel(
             m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
+            m_justShooterSubsystem.autoJustShooterCommand(),
             m_FeederSubsystem.autoFeederCommand()));
     NamedCommands.registerCommand(
         "autoOutake",
@@ -74,7 +77,7 @@ public class RobotContainer {
     NamedCommands.registerCommand(
         "autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
     NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
-
+    NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
     
     configureButtonBindings();
 
@@ -140,40 +143,17 @@ public class RobotContainer {
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.STROBE_RED),
                 m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-                Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+                m_justShooterSubsystem.runJustShooterCommand(),
+                Commands.waitSeconds(0.2).andThen(m_FeederSubsystem.reverseFeederCommand())))
         .onFalse(
             Commands.parallel(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_FeederSubsystem.stopFeederCommand(),
                 Commands.waitSeconds(0.8)
-                    .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand())));
+                    .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+                        m_justShooterSubsystem.stopJustShooterCommand())));
 
-        m_operatorController
-        .x()
-        .onTrue(
-            new ParallelCommandGroup(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-                m_IntakeShooterSubsystem.runIntakeShooterCommand()))
-        .onFalse(
-            Commands.parallel(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-               m_IntakeShooterSubsystem.stopIntakeShooterCommand()));
-
-    m_operatorController
-        .a()
-        .onTrue(
-            new ParallelCommandGroup(
-                m_blinkenLEDSubsystem.setColorCommand(
-                    Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-                m_FeederSubsystem.reverseFeederCommand()))
-        .onFalse(
-            Commands.parallel(
-                m_blinkenLEDSubsystem.setColorCommand(
-                    Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-                m_FeederSubsystem.stopFeederCommand()));
 
     // Intake and spin feeder to load FUEL while holding LEFT Trigger button
     m_operatorController
@@ -200,12 +180,14 @@ public class RobotContainer {
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
                 m_IntakeShooterSubsystem.runUnjamShooterCommand(),
+                m_justShooterSubsystem.reverseJustShooterCommand(),
                 m_FeederSubsystem.runFeederCommand()))
         .onFalse(
             Commands.parallel(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+                m_justShooterSubsystem.stopJustShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
 
 

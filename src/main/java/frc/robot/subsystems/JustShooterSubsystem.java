@@ -10,14 +10,14 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class JustShooter extends SubsystemBase {
+public class JustShooterSubsystem extends SubsystemBase {
 
   // Motor configuration for the intakeShooter subsystem
   private static SparkFlex JustShooterMotor =
     new SparkFlex(14, MotorType.kBrushless); // sets cam ID 14 and type for the shooter motor
   private static SparkFlexConfig JustShooterMotorConfig = new SparkFlexConfig();
 
-  public JustShooter() {
+  public JustShooterSubsystem() {
     configureJustShooter();
   }
 
