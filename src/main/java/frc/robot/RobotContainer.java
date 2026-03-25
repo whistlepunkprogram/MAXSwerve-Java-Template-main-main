@@ -144,7 +144,7 @@ public class RobotContainer {
                 Blinken_LED_Subsystem.LEDColor.STROBE_RED),
                 m_IntakeShooterSubsystem.runIntakeShooterCommand(),
                 m_justShooterSubsystem.runJustShooterCommand(),
-                Commands.waitSeconds(0.2).andThen(m_FeederSubsystem.reverseFeederCommand())))
+                Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
         .onFalse(
             Commands.parallel(
                 m_blinkenLEDSubsystem.setColorCommand(
