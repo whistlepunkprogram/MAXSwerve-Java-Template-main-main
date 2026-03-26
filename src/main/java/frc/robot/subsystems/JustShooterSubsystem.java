@@ -28,33 +28,33 @@ public class JustShooterSubsystem extends SubsystemBase {
     JustShooterMotor.configure(
         JustShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
-  // Intake speed for intaking fuel
+  // SHOOT COMMAND FOR SHOOTING FUEL
   public Command runJustShooterCommand() {
     return Commands.runOnce(
         () -> JustShooterMotor.set(-.7), this); // 1 is the speed the shooter will spin.
   }
-  // Shooter speed for shooting fuel
+  // REVERSE SHOOTER COMMAND FOR REVERSING FUEL
   public Command reverseJustShooterCommand() {
     return Commands.runOnce(
         () -> JustShooterMotor.set(1), this); // -1 is the speed the shooter will spin in reverse.
   }
 
-  // Stop command used by all intake/shooter commands.
+  // STOP COMMAND FOR IDLING THE SHOOTER
   public Command stopJustShooterCommand() {
     return Commands.runOnce(() -> JustShooterMotor.set(-.2), this); // stops the shooter motor
   }
 
-  // auto command for path planner to shoot fuel that are already loaded.
+  // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.
   public Command autoJustShooterCommand() {
     return Commands.sequence(
-        Commands.runOnce(() -> JustShooterMotor.set(1), this), // Start shooter at 100% speed
+        Commands.runOnce(() -> JustShooterMotor.set(-.7), this), // Start shooter at 100% speed
         Commands.waitSeconds(5.5), // Wait for 5.5 seconds
         Commands.runOnce(() -> JustShooterMotor.set(0), this));
   }
-  // auto command for path planner to reverse the shooter to send fuel into outpost.
+  // AUTO COMMAND FOR PATH PLANNER TO REVERSE THE SHOOTER
   public Command autoReverseJustShooterCommand() {
     return Commands.sequence(
-        Commands.runOnce(() -> JustShooterMotor.set(-1), this), // Start shooter at 100% speed in reverse
+        Commands.runOnce(() -> JustShooterMotor.set(1), this), // Start shooter at 100% speed in reverse
         Commands.waitSeconds(6), // Wait for 6.0 seconds
         Commands.runOnce(() -> JustShooterMotor.set(0), this));
   }
