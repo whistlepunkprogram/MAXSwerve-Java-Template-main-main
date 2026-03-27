@@ -34,6 +34,10 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 public class RobotContainer {
     private static final double kAutoAimP = 0.02;
     private static final double kAutoAimMaxRot = 0.6;
+    private static final double kTriggerDeadband = 0.05;
+    private static final double kShooterMinOutput = 4.5;
+    private static final double kShooterMaxOutput = 1.0;
+    private static final double kShooterTyFactor = 0.02;
 
   // The robot's subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
@@ -129,13 +133,24 @@ public class RobotContainer {
             new RunCommand(
                 () -> {
                   double turn = 0.0;
+                  double shooterScale = 0.0;
                   if (m_limelight4Subsystem.hasTarget()) {
                     turn = MathUtil.clamp(
                         -m_limelight4Subsystem.getTargetX() * kAutoAimP,
                         -kAutoAimMaxRot,
                         kAutoAimMaxRot);
                     m_robotDrive.applyVisionPose(m_limelight4Subsystem.getBotPoseBlue());
+
+                    shooterScale = MathUtil.clamp(
+                        kShooterMinOutput
+                            + (m_limelight4Subsystem.getTargetY() * kShooterTyFactor),
+                        kShooterMinOutput,
+                        kShooterMaxOutput);
                   }
+
+                  double triggerValue = MathUtil.applyDeadband(
+                      m_driverController.getRightTriggerAxis(), kTriggerDeadband);
+                  m_justShooterSubsystem.setShooterSpeed(-triggerValue * shooterScale);
 
                   m_robotDrive.drive(
                       -MathUtil.applyDeadband(
@@ -145,7 +160,9 @@ public class RobotContainer {
                       turn,
                       true);
                 },
-                m_robotDrive));
+                m_robotDrive,
+                m_justShooterSubsystem))
+        .onFalse(m_justShooterSubsystem.stopJustShooterCommand());
 
        // Outtake and spit out fuel to floor while holding right bumper button
     m_operatorController
