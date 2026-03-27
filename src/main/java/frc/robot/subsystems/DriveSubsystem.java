@@ -65,6 +65,7 @@ public class DriveSubsystem extends SubsystemBase {
       });
 
   private final RobotConfig m_robotConfig;
+  private Pose2d m_pendingVisionPose;
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
@@ -100,6 +101,22 @@ public class DriveSubsystem extends SubsystemBase {
             m_rearLeft.getPosition(),
             m_rearRight.getPosition()
         });
+
+    if (m_pendingVisionPose != null) {
+      resetOdometry(m_pendingVisionPose);
+      m_pendingVisionPose = null;
+    }
+  }
+
+  /**
+   * Queue a vision pose update to be applied during the next periodic cycle.
+   *
+   * @param visionPose The field-relative pose from vision.
+   */
+  public void applyVisionPose(Pose2d visionPose) {
+    if (visionPose != null) {
+      m_pendingVisionPose = visionPose;
+    }
   }
 
   /**

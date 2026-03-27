@@ -16,6 +16,7 @@ import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
 import frc.robot.subsystems.Blinken_LED_Subsystem;
 import frc.robot.subsystems.JustShooterSubsystem;
+import frc.robot.subsystems.Limelight4Subsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -31,12 +32,16 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+    private static final double kAutoAimP = 0.02;
+    private static final double kAutoAimMaxRot = 0.6;
+
   // The robot's subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
     private final JustShooterSubsystem m_justShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
   private final Blinken_LED_Subsystem m_blinkenLEDSubsystem = new Blinken_LED_Subsystem();
+    private final Limelight4Subsystem m_limelight4Subsystem = new Limelight4Subsystem();
 
   // Controller
   private final CommandXboxController m_driverController = new CommandXboxController(0);
@@ -95,6 +100,7 @@ public class RobotContainer {
 
     m_autoChooser = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Chooser", m_autoChooser);
+        SmartDashboard.putData("Limelight4", m_limelight4Subsystem);
   }
 
   /**
@@ -116,6 +122,30 @@ public class RobotContainer {
         .onTrue(new InstantCommand(
             () -> m_robotDrive.zeroHeading(),
             m_robotDrive));
+
+    m_driverController
+        .rightTrigger()
+        .whileTrue(
+            new RunCommand(
+                () -> {
+                  double turn = 0.0;
+                  if (m_limelight4Subsystem.hasTarget()) {
+                    turn = MathUtil.clamp(
+                        -m_limelight4Subsystem.getTargetX() * kAutoAimP,
+                        -kAutoAimMaxRot,
+                        kAutoAimMaxRot);
+                    m_robotDrive.applyVisionPose(m_limelight4Subsystem.getBotPoseBlue());
+                  }
+
+                  m_robotDrive.drive(
+                      -MathUtil.applyDeadband(
+                          m_driverController.getLeftY(), OIConstants.kDriveDeadband),
+                      -MathUtil.applyDeadband(
+                          m_driverController.getLeftX(), OIConstants.kDriveDeadband),
+                      turn,
+                      true);
+                },
+                m_robotDrive));
 
        // Outtake and spit out fuel to floor while holding right bumper button
     m_operatorController
