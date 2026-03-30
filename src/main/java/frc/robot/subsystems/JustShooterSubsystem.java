@@ -31,17 +31,17 @@ public class JustShooterSubsystem extends SubsystemBase {
   // SHOOT COMMAND FOR SHOOTING FUEL
   public Command runJustShooterCommand() {
     return Commands.runOnce(
-        () -> JustShooterMotor.set(-.7), this); // 1 is the speed the shooter will spin.
+        () -> JustShooterMotor.set(-.7), this); // -.7 is the speed the shooter will spin.
   }
   // REVERSE SHOOTER COMMAND FOR REVERSING FUEL
   public Command reverseJustShooterCommand() {
     return Commands.runOnce(
-        () -> JustShooterMotor.set(1), this); // -1 is the speed the shooter will spin in reverse.
+        () -> JustShooterMotor.set(1), this); // 1 is the speed the shooter will spin in reverse.
   }
 
   // STOP COMMAND FOR IDLING THE SHOOTER
   public Command stopJustShooterCommand() {
-    return Commands.runOnce(() -> JustShooterMotor.set(-.3), this); // stops the shooter motor
+    return Commands.runOnce(() -> JustShooterMotor.set(-.3), this); // IDLES the shooter motor
   }
 
   // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.
