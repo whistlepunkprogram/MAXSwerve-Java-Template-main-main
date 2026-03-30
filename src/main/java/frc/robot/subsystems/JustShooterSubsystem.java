@@ -41,7 +41,7 @@ public class JustShooterSubsystem extends SubsystemBase {
 
   // STOP COMMAND FOR IDLING THE SHOOTER
   public Command stopJustShooterCommand() {
-    return Commands.runOnce(() -> JustShooterMotor.set(-.2), this); // stops the shooter motor
+    return Commands.runOnce(() -> JustShooterMotor.set(-.3), this); // stops the shooter motor
   }
 
   // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.

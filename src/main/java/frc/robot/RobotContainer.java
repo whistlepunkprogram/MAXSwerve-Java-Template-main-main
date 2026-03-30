@@ -150,7 +150,7 @@ public class RobotContainer {
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_FeederSubsystem.stopFeederCommand(),
-                Commands.waitSeconds(0.8)
+                Commands.waitSeconds(0.3)
                     .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                         m_justShooterSubsystem.stopJustShooterCommand())));
 
