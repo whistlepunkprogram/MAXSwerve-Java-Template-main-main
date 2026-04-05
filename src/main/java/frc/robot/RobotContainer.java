@@ -8,6 +8,8 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
@@ -35,7 +37,7 @@ public class RobotContainer {
     private static final double kAutoAimP = 0.02;
     private static final double kAutoAimMaxRot = 0.6;
     private static final double kTriggerDeadband = 0.05;
-    private static final double kShooterMinOutput = 4.5;
+    private static final double kShooterMinOutput = .5;
     private static final double kShooterMaxOutput = 1.0;
     private static final double kShooterTyFactor = 0.02;
 
@@ -52,6 +54,7 @@ public class RobotContainer {
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
 
   private final SendableChooser<Command> m_autoChooser;
+    private final ShuffleboardTab m_limelightTab = Shuffleboard.getTab("Limelight");
 
 
   /**
@@ -105,6 +108,18 @@ public class RobotContainer {
     m_autoChooser = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Chooser", m_autoChooser);
         SmartDashboard.putData("Limelight4", m_limelight4Subsystem);
+
+    m_limelightTab.addBoolean("Has Target", m_limelight4Subsystem::hasTarget).withPosition(0, 0);
+    m_limelightTab.addNumber("Tx", m_limelight4Subsystem::getTargetX).withPosition(0, 1);
+    m_limelightTab.addNumber("Ty", m_limelight4Subsystem::getTargetY).withPosition(1, 1);
+    m_limelightTab.addNumber("Area", m_limelight4Subsystem::getTargetArea).withPosition(2, 1);
+    m_limelightTab.addNumber("Tag ID", m_limelight4Subsystem::getAprilTagId).withPosition(3, 1);
+    m_limelightTab.addNumber("AutoAim Turn", () -> SmartDashboard.getNumber("AutoAim/TurnCommand", 0.0))
+        .withPosition(0, 2);
+    m_limelightTab.addNumber("AutoAim Shooter", () -> SmartDashboard.getNumber("AutoAim/ShooterOutput", 0.0))
+        .withPosition(1, 2);
+    m_limelightTab.addNumber("Trigger", () -> SmartDashboard.getNumber("AutoAim/TriggerDeadband", 0.0))
+        .withPosition(2, 2);
   }
 
   /**
@@ -134,6 +149,10 @@ public class RobotContainer {
                 () -> {
                   double turn = 0.0;
                   double shooterScale = 0.0;
+                                    SmartDashboard.putBoolean("AutoAim/HasTarget", m_limelight4Subsystem.hasTarget());
+                                    SmartDashboard.putNumber("AutoAim/Tx", m_limelight4Subsystem.getTargetX());
+                                    SmartDashboard.putNumber("AutoAim/Ty", m_limelight4Subsystem.getTargetY());
+                                    SmartDashboard.putNumber("AutoAim/Trigger", m_driverController.getRightTriggerAxis());
                   if (m_limelight4Subsystem.hasTarget()) {
                     turn = MathUtil.clamp(
                         -m_limelight4Subsystem.getTargetX() * kAutoAimP,
@@ -151,6 +170,11 @@ public class RobotContainer {
                   double triggerValue = MathUtil.applyDeadband(
                       m_driverController.getRightTriggerAxis(), kTriggerDeadband);
                   m_justShooterSubsystem.setShooterSpeed(-triggerValue * shooterScale);
+
+                  SmartDashboard.putNumber("AutoAim/TurnCommand", turn);
+                  SmartDashboard.putNumber("AutoAim/ShooterScale", shooterScale);
+                  SmartDashboard.putNumber("AutoAim/TriggerDeadband", triggerValue);
+                  SmartDashboard.putNumber("AutoAim/ShooterOutput", -triggerValue * shooterScale);
 
                   m_robotDrive.drive(
                       -MathUtil.applyDeadband(
