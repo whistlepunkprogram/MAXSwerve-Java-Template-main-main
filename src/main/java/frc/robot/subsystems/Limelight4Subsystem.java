@@ -4,6 +4,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -53,7 +54,7 @@ public class Limelight4Subsystem extends SubsystemBase {
   }
 
   public Pose2d getBotPoseBlue() {
-    double[] pose = botpose.getDoubleArray(new double[6]);
+    double[] pose = botpose.getDoubleArray(new double[7]);
     if (pose.length < 6) {
       return new Pose2d();
     }
@@ -61,6 +62,15 @@ public class Limelight4Subsystem extends SubsystemBase {
     pose[0],
     pose[1],
     edu.wpi.first.math.geometry.Rotation2d.fromDegrees(pose[5]));
+  }
+
+  public double getBotPoseBlueTimestampSeconds() {
+    double[] pose = botpose.getDoubleArray(new double[7]);
+    if (pose.length < 7) {
+      return Timer.getFPGATimestamp();
+    }
+    double latencySeconds = pose[6] / 1000.0;
+    return Timer.getFPGATimestamp() - latencySeconds;
   }
 
   @Override

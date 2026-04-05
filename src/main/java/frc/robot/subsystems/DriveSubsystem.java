@@ -11,7 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -26,6 +26,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.Constants.VisionConstants;
 
 public class DriveSubsystem extends SubsystemBase {
   // Create MAXSwerveModules
@@ -53,19 +54,16 @@ public class DriveSubsystem extends SubsystemBase {
  // private final ADIS16470_IMU m_gyro1 = new ADIS16470_IMU();
   private final Pigeon2 m_gyro = new Pigeon2(9);
 
-  // Odometry class for tracking robot pose
-  SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
-      DriveConstants.kDriveKinematics,
-      Rotation2d.fromDegrees(m_gyro.getYaw().getValueAsDouble()),
-      new SwerveModulePosition[] {
-          m_frontLeft.getPosition(),
-          m_frontRight.getPosition(),
-          m_rearLeft.getPosition(),
-          m_rearRight.getPosition()
-      });
+  // Pose estimator for tracking robot pose with vision
+  private final SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(
+    DriveConstants.kDriveKinematics,
+    Rotation2d.fromDegrees(m_gyro.getYaw().getValueAsDouble()),
+    getModulePositions(),
+    new Pose2d(),
+    VisionConstants.kStateStdDevs,
+    VisionConstants.kVisionStdDevs);
 
   private final RobotConfig m_robotConfig;
-  private Pose2d m_pendingVisionPose;
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
@@ -92,30 +90,21 @@ public class DriveSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // Update the odometry in the periodic block
-    m_odometry.update(
+  // Update the pose estimator in the periodic block
+  m_poseEstimator.update(
         Rotation2d.fromDegrees(m_gyro.getYaw().getValueAsDouble()),
-        new SwerveModulePosition[] {
-            m_frontLeft.getPosition(),
-            m_frontRight.getPosition(),
-            m_rearLeft.getPosition(),
-            m_rearRight.getPosition()
-        });
-
-    if (m_pendingVisionPose != null) {
-      resetOdometry(m_pendingVisionPose);
-      m_pendingVisionPose = null;
-    }
+    getModulePositions());
   }
 
   /**
-   * Queue a vision pose update to be applied during the next periodic cycle.
+   * Add a vision measurement to the pose estimator.
    *
    * @param visionPose The field-relative pose from vision.
+   * @param timestampSeconds The timestamp of the vision measurement.
    */
-  public void applyVisionPose(Pose2d visionPose) {
+  public void addVisionMeasurement(Pose2d visionPose, double timestampSeconds) {
     if (visionPose != null) {
-      m_pendingVisionPose = visionPose;
+      m_poseEstimator.addVisionMeasurement(visionPose, timestampSeconds);
     }
   }
 
@@ -125,7 +114,7 @@ public class DriveSubsystem extends SubsystemBase {
    * @return The pose.
    */
   public Pose2d getPose() {
-    return m_odometry.getPoseMeters();
+    return m_poseEstimator.getEstimatedPosition();
   }
 
   /**
@@ -134,15 +123,19 @@ public class DriveSubsystem extends SubsystemBase {
    * @param pose The pose to which to set the odometry.
    */
   public void resetOdometry(Pose2d pose) {
-    m_odometry.resetPosition(
+  m_poseEstimator.resetPosition(
         Rotation2d.fromDegrees(m_gyro.getYaw().getValueAsDouble()),
-        new SwerveModulePosition[] {
-            m_frontLeft.getPosition(),
-            m_frontRight.getPosition(),
-            m_rearLeft.getPosition(),
-            m_rearRight.getPosition()
-        },
+    getModulePositions(),
         pose);
+  }
+
+  private SwerveModulePosition[] getModulePositions() {
+  return new SwerveModulePosition[] {
+    m_frontLeft.getPosition(),
+    m_frontRight.getPosition(),
+    m_rearLeft.getPosition(),
+    m_rearRight.getPosition()
+  };
   }
 
   /**

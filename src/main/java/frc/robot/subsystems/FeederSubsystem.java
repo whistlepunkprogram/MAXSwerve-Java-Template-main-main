@@ -30,11 +30,11 @@ public class FeederSubsystem extends SubsystemBase {
 
   // this command will load fuel into the shooter.
   public Command runFeederCommand() {
-    return Commands.runOnce(() -> feederMotor.set(0.6), this);
+    return Commands.startEnd(() -> feederMotor.set(0.6), () -> feederMotor.set(0), this);
   }
   // this command would intake fuel
   public Command reverseFeederCommand() {
-    return Commands.runOnce(() -> feederMotor.set(-0.6), this);
+    return Commands.startEnd(() -> feederMotor.set(-0.6), () -> feederMotor.set(0), this);
   }
 
   public Command stopFeederCommand() {

@@ -30,26 +30,33 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   }
   // Intake speed for outtaking fuel to the depot and or clearing the hopper
   public Command runSlowIntakeCommand() {
-    return Commands.runOnce(
-        () -> intakeShooterMotor.set(-.4), this); // .3 is the speed the intake will spin.
+  return Commands.startEnd(
+    () -> intakeShooterMotor.set(-0.4),
+    () -> intakeShooterMotor.set(0),
+    this); // .3 is the speed the intake will spin.
   }
   // Shooter speed for shooting fuel
   public Command runIntakeShooterCommand() {
-    return Commands.runOnce(
-        () -> intakeShooterMotor.set(.4), this); // .5 is the speed the intake will spin.
+  return Commands.startEnd(
+    () -> intakeShooterMotor.set(0.4),
+    () -> intakeShooterMotor.set(0),
+    this); // .5 is the speed the intake will spin.
   }
 
   // Unjam shooter by reversing the motor.
   public Command runUnjamShooterCommand() {
-    return Commands.runOnce(
-        () -> intakeShooterMotor.set(-.95),
-        this); // -.95 is the speed the intake will spin in reverse.
+  return Commands.startEnd(
+    () -> intakeShooterMotor.set(-0.95),
+    () -> intakeShooterMotor.set(0),
+    this); // -.95 is the speed the intake will spin in reverse.
   }
 
   // Send fuel into outpost
   public Command reverseIntakeShooterCommand() {
-    return Commands.runOnce(
-        () -> intakeShooterMotor.set(.35), this); // This spins the intake motor backwards.
+  return Commands.startEnd(
+    () -> intakeShooterMotor.set(0.35),
+    () -> intakeShooterMotor.set(0),
+    this); // This spins the intake motor backwards.
   }
   // Stop command used by all intake/shooter commands.
   public Command stopIntakeShooterCommand() {

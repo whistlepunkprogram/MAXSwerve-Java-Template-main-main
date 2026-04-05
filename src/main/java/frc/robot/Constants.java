@@ -10,6 +10,9 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
+import edu.wpi.first.math.numbers.N3;
 
 import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
@@ -130,6 +133,15 @@ public final class Constants {
     // Constraint for the motion profiled robot angle controller
     public static final TrapezoidProfile.Constraints kThetaControllerConstraints = new TrapezoidProfile.Constraints(
         kMaxAngularSpeedRadiansPerSecond, kMaxAngularSpeedRadiansPerSecondSquared);
+  }
+
+  public static final class VisionConstants {
+    public static final double kAutoAimP = 0.02;
+    public static final double kAutoAimMaxRot = 0.6;
+
+    // Pose estimator standard deviations (x, y in meters, heading in radians)
+    public static final Vector<N3> kStateStdDevs = VecBuilder.fill(0.1, 0.1, 0.05);
+    public static final Vector<N3> kVisionStdDevs = VecBuilder.fill(0.5, 0.5, 0.5);
   }
 
   public static final class NeoMotorConstants {

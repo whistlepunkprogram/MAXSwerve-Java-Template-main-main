@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
+import frc.robot.commands.AutoAimCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
@@ -34,10 +35,8 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-    private static final double kAutoAimP = 0.02;
-    private static final double kAutoAimMaxRot = 0.6;
     private static final double kShooterMinOutput = 0.6;
-    private static final double kShooterMaxOutput = .9;
+    private static final double kShooterMaxOutput = 0.9;
     private static final double kShooterTriggerDeadband = 0.05;
 
   // The robot's subsystems
@@ -115,10 +114,8 @@ public class RobotContainer {
     m_limelightTab.addNumber("Tag ID", m_limelight4Subsystem::getAprilTagId).withPosition(3, 1);
     m_limelightTab.addNumber("AutoAim Turn", () -> SmartDashboard.getNumber("AutoAim/TurnCommand", 0.0))
         .withPosition(0, 2);
-    m_limelightTab.addNumber("AutoAim Shooter", () -> SmartDashboard.getNumber("AutoAim/ShooterOutput", 0.0))
-        .withPosition(1, 2);
-    m_limelightTab.addNumber("Trigger", () -> SmartDashboard.getNumber("AutoAim/TriggerDeadband", 0.0))
-        .withPosition(2, 2);
+    m_limelightTab.addNumber("AutoAim Turn", () -> SmartDashboard.getNumber("AutoAim/TurnCommand", 0.0))
+        .withPosition(0, 2);
   }
 
   /**
@@ -144,38 +141,16 @@ public class RobotContainer {
     m_driverController
         .rightTrigger()
         .whileTrue(
-            new RunCommand(
-                () -> {
-                  double turn = 0.0;
-                                    SmartDashboard.putBoolean("AutoAim/HasTarget", m_limelight4Subsystem.hasTarget());
-                                    SmartDashboard.putNumber("AutoAim/Tx", m_limelight4Subsystem.getTargetX());
-                                    SmartDashboard.putNumber("AutoAim/Ty", m_limelight4Subsystem.getTargetY());
-                  if (m_limelight4Subsystem.hasTarget()) {
-                    turn = MathUtil.clamp(
-                        -m_limelight4Subsystem.getTargetX() * kAutoAimP,
-                        -kAutoAimMaxRot,
-                        kAutoAimMaxRot);
-                    m_robotDrive.applyVisionPose(m_limelight4Subsystem.getBotPoseBlue());
-                  }
-
-                  SmartDashboard.putNumber("AutoAim/TurnCommand", turn);
-
-                  m_robotDrive.drive(
-                      -MathUtil.applyDeadband(
-                          m_driverController.getLeftY(), OIConstants.kDriveDeadband),
-                      -MathUtil.applyDeadband(
-                          m_driverController.getLeftX(), OIConstants.kDriveDeadband),
-                      turn,
-                      true);
-                },
+            new AutoAimCommand(
                 m_robotDrive,
-                m_justShooterSubsystem))
-        .onFalse(m_justShooterSubsystem.stopJustShooterCommand());
+                m_limelight4Subsystem,
+                m_driverController::getLeftX,
+                m_driverController::getLeftY));
 
        // Outtake and spit out fuel to floor while holding right bumper button
     m_operatorController
         .rightBumper()
-        .onTrue(
+        .whileTrue(
             new ParallelCommandGroup(
                  m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
@@ -193,7 +168,7 @@ public class RobotContainer {
     // which can cause jams.
     m_operatorController
         .rightTrigger()
-        .onTrue(
+        .whileTrue(
             new ParallelCommandGroup(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.STROBE_RED),
@@ -222,7 +197,7 @@ public class RobotContainer {
     // Intake and spin feeder to load FUEL while holding LEFT Trigger button
     m_operatorController
         .leftTrigger()
-        .onTrue(
+        .whileTrue(
             new ParallelCommandGroup(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
@@ -239,7 +214,7 @@ public class RobotContainer {
     // Attempt to unjam shooter by reversing the motor.
     m_operatorController
         .leftBumper()
-        .onTrue(
+        .whileTrue(
             new ParallelCommandGroup(
                 m_blinkenLEDSubsystem.setColorCommand(
                 Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
