@@ -28,10 +28,10 @@ public class IntakeShooterSubsystem extends SubsystemBase {
     intakeShooterMotor.configure(
         intakeShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
-  // Intake speed for intaking fuel
+  // Intake speed for outtaking fuel to the depot and or clearing the hopper
   public Command runSlowIntakeCommand() {
     return Commands.runOnce(
-        () -> intakeShooterMotor.set(-.35), this); // .3 is the speed the intake will spin.
+        () -> intakeShooterMotor.set(-.4), this); // .3 is the speed the intake will spin.
   }
   // Shooter speed for shooting fuel
   public Command runIntakeShooterCommand() {
@@ -59,14 +59,14 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   // auto command for path planner to intake fuel from floor.
   public Command autoSlowIntakeCommand() {
     return Commands.sequence(
-        Commands.runOnce(() -> intakeShooterMotor.set(-0.35), this), // Start intake at 30% speed
+        Commands.runOnce(() -> intakeShooterMotor.set(.35), this), // Start intake at 30% speed
         Commands.waitSeconds(12), // Wait for 12.0 seconds
         Commands.runOnce(() -> intakeShooterMotor.set(0), this));
   }
   // auto command for path planner to shoot fuel that are already loaded.
   public Command autoIntakeShooterCommand() {
     return Commands.sequence(
-        Commands.runOnce(() -> intakeShooterMotor.set(0.9), this), // Start intake at 90% speed
+        Commands.runOnce(() -> intakeShooterMotor.set(0.8), this), // Start intake at 90% speed
         Commands.waitSeconds(5.5), // Wait for 5.5 seconds
         Commands.runOnce(() -> intakeShooterMotor.set(0), this));
   }
