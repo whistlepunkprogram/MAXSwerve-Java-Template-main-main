@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -36,8 +37,10 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
  */
 public class RobotContainer {
     private static final double kShooterMinOutput = 0.6;
-    private static final double kShooterMaxOutput = 0.9;
+    private static final double kShooterMaxOutput = 1;
     private static final double kShooterTriggerDeadband = 0.05;
+    private static final double kShooterTyFactor = 0.02;
+    private static final double kShooterTargetTimeoutSeconds = 0.25;
 
   // The robot's subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
@@ -53,6 +56,8 @@ public class RobotContainer {
 
   private final SendableChooser<Command> m_autoChooser;
     private final ShuffleboardTab m_limelightTab = Shuffleboard.getTab("Limelight");
+    private double m_lastAButtonShooterOutput = 0.0;
+    private double m_lastAButtonTargetTime = -1.0;
 
 
   /**
@@ -112,8 +117,6 @@ public class RobotContainer {
     m_limelightTab.addNumber("Ty", m_limelight4Subsystem::getTargetY).withPosition(1, 1);
     m_limelightTab.addNumber("Area", m_limelight4Subsystem::getTargetArea).withPosition(2, 1);
     m_limelightTab.addNumber("Tag ID", m_limelight4Subsystem::getAprilTagId).withPosition(3, 1);
-    m_limelightTab.addNumber("AutoAim Turn", () -> SmartDashboard.getNumber("AutoAim/TurnCommand", 0.0))
-        .withPosition(0, 2);
     m_limelightTab.addNumber("AutoAim Turn", () -> SmartDashboard.getNumber("AutoAim/TurnCommand", 0.0))
         .withPosition(0, 2);
   }
@@ -209,6 +212,49 @@ public class RobotContainer {
                 Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
                 m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
                 m_FeederSubsystem.stopFeederCommand()));
+
+    // Auto-range shooter using Limelight while holding A
+    m_operatorController
+        .a()
+        .whileTrue(
+                        new ParallelCommandGroup(
+                                m_blinkenLEDSubsystem.setColorCommand(
+                                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+                                m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+                                new RunCommand(
+                                        () -> {
+                        double now = Timer.getFPGATimestamp();
+                        if (m_limelight4Subsystem.hasTarget()) {
+                        m_lastAButtonTargetTime = now;
+                        m_lastAButtonShooterOutput = MathUtil.clamp(
+                            kShooterMinOutput
+                                + (m_limelight4Subsystem.getTargetY() * kShooterTyFactor),
+                            kShooterMinOutput,
+                            kShooterMaxOutput);
+                        }
+
+                        boolean withinTimeout = m_lastAButtonTargetTime > 0
+                            && (now - m_lastAButtonTargetTime) <= kShooterTargetTimeoutSeconds;
+                        if (withinTimeout) {
+                        m_justShooterSubsystem.setShooterSpeed(-m_lastAButtonShooterOutput);
+                        } else {
+                        m_justShooterSubsystem.setShooterSpeed(0);
+                        }
+                                        },
+                                        m_justShooterSubsystem),
+                                Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+                .onFalse(
+                        Commands.parallel(
+                                m_blinkenLEDSubsystem.setColorCommand(
+                                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+                                m_FeederSubsystem.stopFeederCommand(),
+                                Commands.waitSeconds(0.8)
+                                        .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+                    m_justShooterSubsystem.stopJustShooterCommand(),
+                    new InstantCommand(() -> {
+                      m_lastAButtonShooterOutput = 0.0;
+                      m_lastAButtonTargetTime = -1.0;
+                    }))));
      
 
     // Attempt to unjam shooter by reversing the motor.

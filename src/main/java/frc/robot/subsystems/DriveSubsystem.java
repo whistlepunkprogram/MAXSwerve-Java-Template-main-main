@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -26,6 +27,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.VisionConstants;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -64,6 +66,9 @@ public class DriveSubsystem extends SubsystemBase {
     VisionConstants.kVisionStdDevs);
 
   private final RobotConfig m_robotConfig;
+  private final SlewRateLimiter m_xSpeedLimiter = new SlewRateLimiter(OIConstants.kDriveTranslationRateLimit);
+  private final SlewRateLimiter m_ySpeedLimiter = new SlewRateLimiter(OIConstants.kDriveTranslationRateLimit);
+  private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(OIConstants.kDriveRotationRateLimit);
 
   /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
@@ -148,10 +153,14 @@ public class DriveSubsystem extends SubsystemBase {
    *                      field.
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    double limitedX = m_xSpeedLimiter.calculate(xSpeed);
+    double limitedY = m_ySpeedLimiter.calculate(ySpeed);
+    double limitedRot = m_rotLimiter.calculate(rot);
+
     // Convert the commanded speeds into the correct units for the drivetrain
-    double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
-    double ySpeedDelivered = ySpeed * DriveConstants.kMaxSpeedMetersPerSecond;
-    double rotDelivered = rot * DriveConstants.kMaxAngularSpeed;
+    double xSpeedDelivered = limitedX * DriveConstants.kMaxSpeedMetersPerSecond;
+    double ySpeedDelivered = limitedY * DriveConstants.kMaxSpeedMetersPerSecond;
+    double rotDelivered = limitedRot * DriveConstants.kMaxAngularSpeed;
 
     drive(new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered), fieldRelative);
   }

@@ -3,6 +3,8 @@ package frc.robot.commands;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.Set;
 
@@ -14,11 +16,17 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.Limelight4Subsystem;
 
 public class AutoAimCommand extends Command {
+  private static final double kTargetTimeoutSeconds = 0.25;
+  private static final double kTurnSlewRate = 3.0;
+
   private final DriveSubsystem drive;
   private final Limelight4Subsystem limelight;
   private final DoubleSupplier xSupplier;
   private final DoubleSupplier ySupplier;
   private final Set<Subsystem> requirements;
+  private final SlewRateLimiter turnLimiter = new SlewRateLimiter(kTurnSlewRate);
+  private double lastTurn = 0.0;
+  private double lastTargetTime = -1.0;
 
   public AutoAimCommand(
       DriveSubsystem drive,
@@ -39,13 +47,16 @@ public class AutoAimCommand extends Command {
 
   @Override
   public void initialize() {
-    // No-op
+    lastTurn = 0.0;
+    lastTargetTime = -1.0;
+    turnLimiter.reset(0.0);
   }
 
   @Override
   public void execute() {
-    double turn = 0.0;
+  double turn = 0.0;
     boolean hasTarget = limelight.hasTarget();
+  double now = Timer.getFPGATimestamp();
 
     SmartDashboard.putBoolean("AutoAim/HasTarget", hasTarget);
     SmartDashboard.putNumber("AutoAim/Tx", limelight.getTargetX());
@@ -56,17 +67,29 @@ public class AutoAimCommand extends Command {
           -limelight.getTargetX() * VisionConstants.kAutoAimP,
           -VisionConstants.kAutoAimMaxRot,
           VisionConstants.kAutoAimMaxRot);
+      lastTurn = turn;
+      lastTargetTime = now;
       drive.addVisionMeasurement(
           limelight.getBotPoseBlue(),
           limelight.getBotPoseBlueTimestampSeconds());
     }
 
-    SmartDashboard.putNumber("AutoAim/TurnCommand", turn);
+    boolean withinTimeout = lastTargetTime > 0.0
+        && (now - lastTargetTime) <= kTargetTimeoutSeconds;
+    if (!hasTarget && withinTimeout) {
+      turn = lastTurn;
+    }
+    if (!hasTarget && !withinTimeout) {
+      turn = 0.0;
+    }
+
+    double smoothedTurn = turnLimiter.calculate(turn);
+    SmartDashboard.putNumber("AutoAim/TurnCommand", smoothedTurn);
 
     drive.drive(
         -MathUtil.applyDeadband(ySupplier.getAsDouble(), OIConstants.kDriveDeadband),
         -MathUtil.applyDeadband(xSupplier.getAsDouble(), OIConstants.kDriveDeadband),
-        turn,
+    smoothedTurn,
         true);
   }
 

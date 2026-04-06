@@ -83,10 +83,12 @@ public final class Constants {
     public static final double kDriveWheelFreeSpeedRps = (kDrivingMotorFreeSpeedRps * kWheelCircumferenceMeters)
         / kDrivingMotorReduction;
   }
-
+// slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 100%
   public static final class OIConstants {
     public static final int kDriverControllerPort = 0;
     public static final double kDriveDeadband = 0.05;
+    public static final double kDriveTranslationRateLimit = 3.0;
+    public static final double kDriveRotationRateLimit = 3.0;
   }
 
   public static final class AutoConstants {
