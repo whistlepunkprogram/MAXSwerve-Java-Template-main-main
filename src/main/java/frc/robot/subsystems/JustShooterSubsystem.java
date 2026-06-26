@@ -22,11 +22,11 @@ public class JustShooterSubsystem extends SubsystemBase {
   private double m_lastSpeed = 0.0;
 
   // Reasonable defaults (can be tuned)
-  private static final double kDefaultShootSpeed = -0.60;
+  private static final double kDefaultShootSpeed = -0.65;
   private static final double kReverseShootSpeed = 1.0;
   private static final double kIdleSpeed = -0.30;
   // PID closed-loop defaults (tune on robot)
-  private static final double kDefaultShootRPM = 4000.0;
+  private static final double kDefaultShootRPM = -5500.0;
   private static final double kP = 0.00025;
   private static final double kI = 0.0;
   private static final double kD = 0.0;
