@@ -6,6 +6,9 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
+import com.revrobotics.RelativeEncoder;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -16,6 +19,22 @@ public class JustShooterSubsystem extends SubsystemBase {
   private static SparkFlex JustShooterMotor =
     new SparkFlex(14, MotorType.kBrushless); // sets cam ID 14 and type for the shooter motor
   private static SparkFlexConfig JustShooterMotorConfig = new SparkFlexConfig();
+  private double m_lastSpeed = 0.0;
+
+  // Reasonable defaults (can be tuned)
+  private static final double kDefaultShootSpeed = -0.60;
+  private static final double kReverseShootSpeed = 1.0;
+  private static final double kIdleSpeed = -0.30;
+  // PID closed-loop defaults (tune on robot)
+  private static final double kDefaultShootRPM = 4000.0;
+  private static final double kP = 0.00025;
+  private static final double kI = 0.0;
+  private static final double kD = 0.0;
+
+  private final RelativeEncoder m_encoder = JustShooterMotor.getEncoder();
+  private final PIDController m_pid = new PIDController(kP, kI, kD);
+  private boolean m_pidEnabled = false;
+  private double m_pidTargetRPM = 0.0;
 
   public JustShooterSubsystem() {
     configureJustShooter();
@@ -28,35 +47,78 @@ public class JustShooterSubsystem extends SubsystemBase {
     JustShooterMotor.configure(
         JustShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
-  // SHOOT COMMAND FOR SHOOTING FUEL
-  public Command runJustShooterCommand() {
-    return Commands.runOnce(
-        () -> JustShooterMotor.set(-.7), this); // -.7 is the speed the shooter will spin.
-  }
-  // REVERSE SHOOTER COMMAND FOR REVERSING FUEL
-  public Command reverseJustShooterCommand() {
-    return Commands.runOnce(
-        () -> JustShooterMotor.set(1), this); // 1 is the speed the shooter will spin in reverse.
+
+  /** Set shooter motor speed (direct control). */
+  public void setShooterSpeed(double speed) {
+    JustShooterMotor.set(speed);
+    m_lastSpeed = speed;
   }
 
-  // STOP COMMAND FOR IDLING THE SHOOTER
+  /** Stop the shooter (set to 0). */
+  public void stopShooter() {
+    setShooterSpeed(0.0);
+  }
+
+  /** Return the last commanded shooter speed. */
+  public double getLastSpeed() {
+    return m_lastSpeed;
+  }
+
+  // SHOOT COMMAND FOR SHOOTING FUEL (hold to run)
+  public Command runJustShooterCommand() {
+    return Commands.startEnd(() -> setShooterSpeed(kDefaultShootSpeed), this::stopShooter, this);
+  }
+
+  /** Run shooter closed-loop to target RPM while held. */
+  public Command runJustShooterPIDCommand() {
+    return Commands.startEnd(() -> startPIDControl(kDefaultShootRPM), this::stopPIDControl, this);
+  }
+
+  // REVERSE SHOOTER COMMAND FOR REVERSING FUEL (hold to run)
+  public Command reverseJustShooterCommand() {
+    return Commands.startEnd(() -> setShooterSpeed(kReverseShootSpeed), this::stopShooter, this);
+  }
+
+  // STOP COMMAND FOR IDLING THE SHOOTER (sets idle or 0 depending on use)
   public Command stopJustShooterCommand() {
-    return Commands.runOnce(() -> JustShooterMotor.set(-.3), this); // IDLES the shooter motor
+    return Commands.runOnce(() -> setShooterSpeed(kIdleSpeed), this);
   }
 
   // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.
   public Command autoJustShooterCommand() {
-    return Commands.sequence(
-        Commands.runOnce(() -> JustShooterMotor.set(-.7), this), // Start shooter at 100% speed
-        Commands.waitSeconds(5.5), // Wait for 5.5 seconds
-        Commands.runOnce(() -> JustShooterMotor.set(0), this));
+  return Commands.sequence(
+    Commands.runOnce(() -> startPIDControl(kDefaultShootRPM), this), // Start shooter closed-loop
+    Commands.waitSeconds(5.5), // Wait for 5.5 seconds
+    Commands.runOnce(this::stopPIDControl, this));
   }
   // AUTO COMMAND FOR PATH PLANNER TO REVERSE THE SHOOTER
   public Command autoReverseJustShooterCommand() {
     return Commands.sequence(
-        Commands.runOnce(() -> JustShooterMotor.set(1), this), // Start shooter at 100% speed in reverse
+        Commands.runOnce(() -> setShooterSpeed(kReverseShootSpeed), this), // Start shooter in reverse
         Commands.waitSeconds(6), // Wait for 6.0 seconds
-        Commands.runOnce(() -> JustShooterMotor.set(0), this));
+        Commands.runOnce(this::stopShooter, this));
+  }
+
+  private void startPIDControl(double rpm) {
+    m_pidTargetRPM = rpm;
+    m_pid.reset();
+    m_pidEnabled = true;
+  }
+
+  private void stopPIDControl() {
+    m_pidEnabled = false;
+    stopShooter();
+  }
+
+  @Override
+  public void periodic() {
+    if (m_pidEnabled) {
+      double currentRPM = m_encoder.getVelocity();
+      double output = m_pid.calculate(currentRPM, m_pidTargetRPM);
+      // PID output is a motor power, clamp to valid range
+      output = MathUtil.clamp(output, -1.0, 1.0);
+      setShooterSpeed(output);
+    }
   }
 }
 
