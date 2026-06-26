@@ -5,14 +5,15 @@
 package frc.robot;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.XboxController;
+// import edu.wpi.first.wpilibj.XboxController; // unused
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import com.pathplanner.lib.auto.AutoBuilder;
+// import com.pathplanner.lib.auto.AutoBuilder; // unused
 import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
+import edu.wpi.first.wpilibj.Joystick;
 import frc.robot.subsystems.IntakeShooterSubsystem;
 import frc.robot.subsystems.Blinken_LED_Subsystem;
 import frc.robot.subsystems.JustShooterSubsystem;
@@ -41,6 +42,7 @@ public class RobotContainer {
   // Controller
   private final CommandXboxController m_driverController = new CommandXboxController(0);
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
+ private final Joystick m_driverJoystick = new Joystick(OIConstants.kDriverControllerPort);
 
   private final SendableChooser<Command> m_autoChooser;
 
@@ -79,12 +81,15 @@ public class RobotContainer {
     NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
     NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
     
-    configureButtonBindings();
+  // Initialize autonomous chooser
+  m_autoChooser = new SendableChooser<>();
+  m_autoChooser.setDefaultOption("Default", new InstantCommand());
+  SmartDashboard.putData("Auto Mode", m_autoChooser);
 
-    // Configure default commands
+  configureButtonBindings();
+
+    // Configure default command: left stick translation, right stick rotation
     m_robotDrive.setDefaultCommand(
-        // The left stick controls translation of the robot.
-        // Turning is controlled by the X axis of the right stick.
         new RunCommand(
             () -> m_robotDrive.drive(
                 -MathUtil.applyDeadband(m_driverController.getLeftY(), OIConstants.kDriveDeadband),
@@ -93,105 +98,192 @@ public class RobotContainer {
                 true),
             m_robotDrive));
 
-    m_autoChooser = AutoBuilder.buildAutoChooser();
-    SmartDashboard.putData("Auto Chooser", m_autoChooser);
   }
 
-  /**
-   * Use this method to define your button->command mappings. Buttons can be
-   * created by
-   * instantiating a {@link edu.wpi.first.wpilibj.GenericHID} or one of its
-   * subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then calling
-   * passing it to a
-   * {@link JoystickButton}.
-   */
   private void configureButtonBindings() {
-
+  // SetX / zero-heading mappings depending on device
+  if (OIConstants.kDriverIsJoystick) {
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickSetXButton)
+      .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickZeroHeadingButton)
+      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+  } else {
     m_driverController.rightBumper()
-        .whileTrue(new RunCommand(
-            () -> m_robotDrive.setX(),
-            m_robotDrive));
+      .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
     m_driverController.start()
-        .onTrue(new InstantCommand(
-            () -> m_robotDrive.zeroHeading(),
-            m_robotDrive));
+      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+  }
 
-       // Outtake and spit out fuel to floor while holding right bumper button
-    m_operatorController
-        .rightBumper()
-        .onTrue(
-            new ParallelCommandGroup(
-                 m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
-                m_IntakeShooterSubsystem.runSlowIntakeCommand(),
-                m_FeederSubsystem.reverseFeederCommand()))
-        .onFalse(
-            Commands.parallel(
-                 m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-                m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-                m_FeederSubsystem.stopFeederCommand()));
+  // Operator controls (always available)
+  m_operatorController
+    .rightBumper()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
+        m_IntakeShooterSubsystem.runSlowIntakeCommand(),
+        m_FeederSubsystem.reverseFeederCommand()))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+        m_FeederSubsystem.stopFeederCommand()));
 
-    // Spool up shooter and run intake to SHOOT fuel while holding RIGHT Trigger button
-    // Small delay added to prevent the shooter from stalling when the trigger is first pressed,
-    // which can cause jams.
-    m_operatorController
-        .rightTrigger()
-        .onTrue(
-            new ParallelCommandGroup(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-                m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-                m_justShooterSubsystem.runJustShooterCommand(),
-                Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
-        .onFalse(
-            Commands.parallel(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-                m_FeederSubsystem.stopFeederCommand(),
-                Commands.waitSeconds(0.4)
-                    .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-                        m_justShooterSubsystem.stopJustShooterCommand())));
+  m_operatorController
+    .rightTrigger()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+        m_justShooterSubsystem.runJustShooterPIDCommand(),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_FeederSubsystem.stopFeederCommand(),
+        Commands.waitSeconds(0.4)
+          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+            m_justShooterSubsystem.stopJustShooterCommand())));
 
+  m_operatorController
+    .leftTrigger()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
+        m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
+        m_FeederSubsystem.runFeederCommand()))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+        m_FeederSubsystem.stopFeederCommand()));
 
-    // Intake and spin feeder to load FUEL while holding LEFT Trigger button
-    m_operatorController
-        .leftTrigger()
-        .onTrue(
-            new ParallelCommandGroup(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-                m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
-                m_FeederSubsystem.runFeederCommand()))
-        .onFalse(
-            Commands.parallel(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-                m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-                m_FeederSubsystem.stopFeederCommand()));
-     
+  m_operatorController
+    .leftBumper()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
+        m_IntakeShooterSubsystem.runUnjamShooterCommand(),
+        m_justShooterSubsystem.reverseJustShooterCommand(),
+        m_FeederSubsystem.runFeederCommand()))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+        m_justShooterSubsystem.stopJustShooterCommand(),
+        m_FeederSubsystem.stopFeederCommand()));
 
-    // Attempt to unjam shooter by reversing the motor.
-    m_operatorController
-        .leftBumper()
-        .onTrue(
-            new ParallelCommandGroup(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
-                m_IntakeShooterSubsystem.runUnjamShooterCommand(),
-                m_justShooterSubsystem.reverseJustShooterCommand(),
-                m_FeederSubsystem.runFeederCommand()))
-        .onFalse(
-            Commands.parallel(
-                m_blinkenLEDSubsystem.setColorCommand(
-                Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-                m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-                m_justShooterSubsystem.stopJustShooterCommand(),
-                m_FeederSubsystem.stopFeederCommand()));
+  // Driver duplicate controls (joystick buttons or xbox controller)
+  if (OIConstants.kDriverIsJoystick) {
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickOuttakeButton)
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
+          m_IntakeShooterSubsystem.runSlowIntakeCommand(),
+          m_FeederSubsystem.reverseFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
 
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickTriggerButton)
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+          m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+          m_justShooterSubsystem.runJustShooterPIDCommand(),
+          Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_FeederSubsystem.stopFeederCommand(),
+          Commands.waitSeconds(0.4)
+            .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+              m_justShooterSubsystem.stopJustShooterCommand())));
 
-  }        
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickIntakeButton)
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
+          m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
+          m_FeederSubsystem.runFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
+
+    new JoystickButton(m_driverJoystick, OIConstants.kJoystickUnjamButton)
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
+          m_IntakeShooterSubsystem.runUnjamShooterCommand(),
+          m_justShooterSubsystem.reverseJustShooterCommand(),
+          m_FeederSubsystem.runFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_justShooterSubsystem.stopJustShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
+  } else {
+    m_driverController.x()
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
+          m_IntakeShooterSubsystem.runSlowIntakeCommand(),
+          m_FeederSubsystem.reverseFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
+
+    m_driverController
+      .rightTrigger()
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+          m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+          m_justShooterSubsystem.runJustShooterPIDCommand(),
+          Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_FeederSubsystem.stopFeederCommand(),
+          Commands.waitSeconds(0.4)
+            .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+              m_justShooterSubsystem.stopJustShooterCommand())));
+
+    m_driverController
+      .leftTrigger()
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
+          m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
+          m_FeederSubsystem.runFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
+
+    m_driverController
+      .leftBumper()
+      .onTrue(
+        new ParallelCommandGroup(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
+          m_IntakeShooterSubsystem.runUnjamShooterCommand(),
+          m_justShooterSubsystem.reverseJustShooterCommand(),
+          m_FeederSubsystem.runFeederCommand()))
+      .onFalse(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_justShooterSubsystem.stopJustShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand()));
+  }
+  }
 
 
   /**
