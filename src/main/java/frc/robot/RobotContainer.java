@@ -13,7 +13,6 @@ import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
-import edu.wpi.first.wpilibj.Joystick;
 import frc.robot.subsystems.IntakeShooterSubsystem;
 import frc.robot.subsystems.Blinken_LED_Subsystem;
 import frc.robot.subsystems.JustShooterSubsystem;
@@ -23,7 +22,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+// JoystickButton removed because joystick support is disabled
 
 /*
  * This class is where the bulk of the robot should be declared.  Since Command-based is a
@@ -42,7 +41,6 @@ public class RobotContainer {
   // Controller
   private final CommandXboxController m_driverController = new CommandXboxController(0);
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
- private final Joystick m_driverJoystick = new Joystick(OIConstants.kDriverControllerPort);
 
   private final SendableChooser<Command> m_autoChooser;
 
@@ -101,18 +99,11 @@ public class RobotContainer {
   }
 
   private void configureButtonBindings() {
-  // SetX / zero-heading mappings depending on device
-  if (OIConstants.kDriverIsJoystick) {
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickSetXButton)
-      .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickZeroHeadingButton)
-      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
-  } else {
-    m_driverController.rightBumper()
-      .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
-    m_driverController.start()
-      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
-  }
+  // Driver SetX and zero-heading mappings
+  m_driverController.rightBumper()
+    .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
+  m_driverController.start()
+    .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
   // Operator controls (always available)
   m_operatorController
@@ -230,61 +221,7 @@ public class RobotContainer {
         m_justShooterSubsystem.stopJustShooterCommand(),
         m_FeederSubsystem.stopFeederCommand()));
 
-  // If driver device is a joystick, still register joystick-specific mappings too
-  if (OIConstants.kDriverIsJoystick) {
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickOuttakeButton)
-      .onTrue(
-        new ParallelCommandGroup(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
-          m_IntakeShooterSubsystem.runSlowIntakeCommand(),
-          m_FeederSubsystem.reverseFeederCommand()))
-      .onFalse(
-        Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-          m_FeederSubsystem.stopFeederCommand()));
-
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickTriggerButton)
-      .onTrue(
-        new ParallelCommandGroup(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-          m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-          m_justShooterSubsystem.runJustShooterPIDCommand(),
-          Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
-      .onFalse(
-        Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_FeederSubsystem.stopFeederCommand(),
-          Commands.waitSeconds(0.4)
-            .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-              m_justShooterSubsystem.stopJustShooterCommand())));
-
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickIntakeButton)
-      .onTrue(
-        new ParallelCommandGroup(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-          m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
-          m_FeederSubsystem.runFeederCommand()))
-      .onFalse(
-        Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-          m_FeederSubsystem.stopFeederCommand()));
-
-    new JoystickButton(m_driverJoystick, OIConstants.kJoystickUnjamButton)
-      .onTrue(
-        new ParallelCommandGroup(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
-          m_IntakeShooterSubsystem.runUnjamShooterCommand(),
-          m_justShooterSubsystem.reverseJustShooterCommand(),
-          m_FeederSubsystem.runFeederCommand()))
-      .onFalse(
-        Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-          m_justShooterSubsystem.stopJustShooterCommand(),
-          m_FeederSubsystem.stopFeederCommand()));
-  }
+  // Joystick support removed; Xbox controller mappings already registered above.
   }
 
 

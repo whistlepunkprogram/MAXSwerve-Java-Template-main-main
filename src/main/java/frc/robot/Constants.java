@@ -69,21 +69,8 @@ public final class Constants {
     public static final double kDriveTranslationRateLimit = 3.0;
     public static final double kDriveRotationRateLimit = 4.0;
 
-    // Driver input device selection: set true to use a single Thrustmaster-style Joystick
-    public static final boolean kDriverIsJoystick = true;
-
-    // Joystick axis mapping (adjust for your model)
-    public static final int kJoystickAxisX = 0; // strafe
-    public static final int kJoystickAxisY = 1; // forward/back
-    public static final int kJoystickAxisRotate = 2; // twist or separate axis
-
-    // Joystick button mappings (example IDs, adjust if needed)
-    public static final int kJoystickTriggerButton = 1; // shoot
-    public static final int kJoystickOuttakeButton = 2; // outtake
-    public static final int kJoystickIntakeButton = 3; // intake
-    public static final int kJoystickUnjamButton = 4; // unjam
-    public static final int kJoystickSetXButton = 6; // setX stance
-    public static final int kJoystickZeroHeadingButton = 11; // zero heading
+  // Xbox controller deadband and button/axis choices are used for driver/operator
+  // If you need to support a joystick later, add mappings here.
   }
 
   public static final class AutoConstants {
