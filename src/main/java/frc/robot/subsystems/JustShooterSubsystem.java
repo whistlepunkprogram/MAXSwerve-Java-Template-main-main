@@ -64,10 +64,11 @@ public class JustShooterSubsystem extends SubsystemBase {
     var tab = Shuffleboard.getTab("Shooter");
     // RPM chooser: provides simple preset setpoints to pick from on the dashboard
     m_rpmChooser = new SendableChooser<>();
-    m_rpmChooser.setDefaultOption("Default (-5500)", kDefaultShootRPM);
-    m_rpmChooser.addOption("Low (-3000)", -3000.0);
-    m_rpmChooser.addOption("Medium (-4500)", -4500.0);
-    m_rpmChooser.addOption("High (-6000)", -6000.0);
+  m_rpmChooser.setDefaultOption("Default (-5500)", kDefaultShootRPM);
+  m_rpmChooser.addOption("Low (-4000)", -4000.0);
+  m_rpmChooser.addOption("Medium (-6000)", -6000.0);
+  m_rpmChooser.addOption("X Button (-6500)", -6500.0);
+  m_rpmChooser.addOption("High (-7000)", -7000.0);
     tab.add("RPM Setpoint", m_rpmChooser);
     m_measuredRpmEntry = tab.add("Measured RPM", 0.0).getEntry();
     m_targetRpmEntry = tab.add("Target RPM", 0.0).getEntry();
@@ -118,6 +119,11 @@ public class JustShooterSubsystem extends SubsystemBase {
         },
         this::stopPIDControl,
         this);
+  }
+
+  /** Run shooter closed-loop to a specific RPM while held. */
+  public Command runJustShooterPIDCommand(double rpm) {
+    return Commands.startEnd(() -> startPIDControl(rpm), this::stopPIDControl, this);
   }
 
   // REVERSE SHOOTER COMMAND FOR REVERSING FUEL (hold to run)

@@ -153,6 +153,25 @@ public class RobotContainer {
           .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
             m_justShooterSubsystem.stopJustShooterCommand())));
 
+  // Additional operator shortcut: X button runs the shooter at a higher RPM
+  // while held (6500 RPM setpoint). This gives the operator two preset
+  // shooting speeds on different buttons.
+  m_operatorController
+    .x()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+        m_justShooterSubsystem.runJustShooterPIDCommand(-6500.0),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_FeederSubsystem.stopFeederCommand(),
+        Commands.waitSeconds(0.4)
+          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+            m_justShooterSubsystem.stopJustShooterCommand())));
+
   m_operatorController
     .leftTrigger()
     .onTrue(
