@@ -32,13 +32,18 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
  */
 public class RobotContainer {
   // The robot's subsystems
+  // Subsystems are the parts of the robot (drive, shooter, intake, lights).
+  // We create one instance of each here so commands can use them.
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
-    private final JustShooterSubsystem m_justShooterSubsystem;
+  private final JustShooterSubsystem m_justShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
+  // The LED subsystem controls decorative/status lights on the robot.
   private final Blinken_LED_Subsystem m_blinkenLEDSubsystem = new Blinken_LED_Subsystem();
 
-  // Controller
+  // Controllers for people driving the robot
+  // m_driverController is the main driver (steers and can run simpler actions)
+  // m_operatorController is the second person who can control shooter/intake
   private final CommandXboxController m_driverController = new CommandXboxController(0);
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
 
@@ -49,8 +54,8 @@ public class RobotContainer {
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
-    // Configure the button bindings
-
+    // Constructor: create subsystem instances and configure controls
+    // The constructor runs once when the robot program starts.
     m_IntakeShooterSubsystem = new IntakeShooterSubsystem();
     m_justShooterSubsystem = new JustShooterSubsystem();
     m_FeederSubsystem = new FeederSubsystem();
@@ -79,33 +84,46 @@ public class RobotContainer {
     NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
     NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
     
-  // Initialize autonomous chooser
-  m_autoChooser = new SendableChooser<>();
-  m_autoChooser.setDefaultOption("Default", new InstantCommand());
-  SmartDashboard.putData("Auto Mode", m_autoChooser);
+    // The SendableChooser shows a dropdown on the driver station so you can
+    // pick which autonomous routine to run before a match.
+    m_autoChooser = new SendableChooser<>();
+    m_autoChooser.setDefaultOption("Default", new InstantCommand());
+    SmartDashboard.putData("Auto Mode", m_autoChooser);
 
-  configureButtonBindings();
+    // Wire up buttons to commands (see method below). This keeps the
+    // constructor small and readable.
+    configureButtonBindings();
 
-    // Configure default command: left stick translation, right stick rotation
-    m_robotDrive.setDefaultCommand(
-        new RunCommand(
-            () -> m_robotDrive.drive(
-                -MathUtil.applyDeadband(m_driverController.getLeftY(), OIConstants.kDriveDeadband),
-                -MathUtil.applyDeadband(m_driverController.getLeftX(), OIConstants.kDriveDeadband),
-                -MathUtil.applyDeadband(m_driverController.getRightX(), OIConstants.kDriveDeadband),
-                true),
-            m_robotDrive));
+  // Default command for the drive subsystem
+  // This command runs whenever no other command needs the drive. It reads
+  // controller sticks and drives the robot (field-oriented is true here).
+  m_robotDrive.setDefaultCommand(
+    new RunCommand(
+      () -> m_robotDrive.drive(
+        -MathUtil.applyDeadband(m_driverController.getLeftY(), OIConstants.kDriveDeadband),
+        -MathUtil.applyDeadband(m_driverController.getLeftX(), OIConstants.kDriveDeadband),
+        -MathUtil.applyDeadband(m_driverController.getRightX(), OIConstants.kDriveDeadband),
+        true),
+      m_robotDrive));
 
   }
 
   private void configureButtonBindings() {
-  // Driver SetX and zero-heading mappings
+  // BUTTON BINDINGS
+  // This method connects controller buttons to actions (commands). Commands
+  // are reusable pieces of behavior (start/stop shooter, run intake, etc.).
+
+  // Driver quick controls:
+  // - Right bumper: hold this to make the robot 'set X' (a defensive stance)
   m_driverController.rightBumper()
     .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
+  // - Start button: press to reset the robot's gyro heading to zero
   m_driverController.start()
     .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
-  // Operator controls (always available)
+  // OPERATOR CONTROLS (these are the main shooter/intake controls)
+  // The operator has detailed control over shooter and intake behavior; we
+  // mirror these on the driver where appropriate so either person can act.
   m_operatorController
     .rightBumper()
     .onTrue(
@@ -163,8 +181,10 @@ public class RobotContainer {
         m_justShooterSubsystem.stopJustShooterCommand(),
         m_FeederSubsystem.stopFeederCommand()));
 
-  // Driver duplicate controls (joystick buttons or xbox controller)
-  // Register Xbox driver mappings so Xbox controllers always work for driver
+  // DRIVER DUPLICATE CONTROLS
+  // The driver gets simpler copies of the operator controls so the driver
+  // can shoot or intake without the operator. These are intentionally the
+  // same commands to keep behavior predictable.
   m_driverController.x()
     .onTrue(
       new ParallelCommandGroup(
@@ -221,7 +241,7 @@ public class RobotContainer {
         m_justShooterSubsystem.stopJustShooterCommand(),
         m_FeederSubsystem.stopFeederCommand()));
 
-  // Joystick support removed; Xbox controller mappings already registered above.
+  // End of button bindings. All the important buttons are wired above.
   }
 
 
