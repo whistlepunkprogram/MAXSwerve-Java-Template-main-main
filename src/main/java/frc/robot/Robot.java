@@ -28,6 +28,20 @@ public class Robot extends TimedRobot {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
+    // Try to start the PathPlanner server so the PathPlanner desktop app and
+    // Shuffleboard widgets can see the deployed paths in deploy/pathplanner.
+    // We use reflection so the robot code compiles even if the server class
+    // is not present on the classpath (some deployments omit it).
+    try {
+      var cls = Class.forName("com.pathplanner.lib.server.PathPlannerServer");
+      var method = cls.getMethod("startServer");
+      method.invoke(null);
+    } catch (ClassNotFoundException cnfe) {
+      // Not a fatal error: the server jar may not be available in this build.
+      System.out.println("PathPlannerServer not found on classpath; skipping server start.");
+    } catch (Exception e) {
+      System.out.println("Warning: PathPlannerServer failed to start: " + e.getMessage());
+    }
   }
 
   /**

@@ -47,7 +47,10 @@ public class RobotContainer {
   private final CommandXboxController m_driverController = new CommandXboxController(0);
   private final CommandXboxController m_operatorController = new CommandXboxController(1);
 
-  private final SendableChooser<Command> m_autoChooser;
+  private final SendableChooser<String> m_autoChooser;
+  // Keep a local map of commands we manually register so we can resolve
+  // them later if reflection into NamedCommands doesn't return a Command.
+  private final java.util.Map<String, Command> m_localNamedCommands = new java.util.HashMap<>();
 
 
   /**
@@ -61,33 +64,98 @@ public class RobotContainer {
     m_FeederSubsystem = new FeederSubsystem();
 
     // Set up auto commands
-    NamedCommands.registerCommand(
-        "autoIntake",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoSlowIntakeCommand(),
-            m_FeederSubsystem.autoReverseFeederCommand()));
-    NamedCommands.registerCommand(
-        "autoShoot",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
-            m_justShooterSubsystem.autoJustShooterCommand(),
-            m_FeederSubsystem.autoFeederCommand()));
-    NamedCommands.registerCommand(
-        "autoOutake",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoReverseIntakeShooterCommand(),
-            m_FeederSubsystem.autoFeederCommand()));
+  NamedCommands.registerCommand(
+    "autoIntake",
+    Commands.parallel(
+      m_IntakeShooterSubsystem.autoSlowIntakeCommand(),
+      m_FeederSubsystem.autoReverseFeederCommand()));
+  m_localNamedCommands.put("autoIntake", Commands.parallel(
+      m_IntakeShooterSubsystem.autoSlowIntakeCommand(),
+      m_FeederSubsystem.autoReverseFeederCommand()));
+  NamedCommands.registerCommand(
+    "autoShoot",
+    Commands.sequence(
+          // Run the main shooting/intake/feeder parallel group for 5 seconds
+          Commands.parallel(
+            m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+            m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+            m_justShooterSubsystem.runJustShooterPIDCommand(),
+            Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())
+          ).withTimeout(5.0),
+          // After the timeout, run the stop/restore actions to turn things back to default
+          Commands.parallel(
+            m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+            m_FeederSubsystem.stopFeederCommand(),
+            Commands.waitSeconds(0.4)
+              .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+                m_justShooterSubsystem.stopJustShooterCommand())
+          )
+        )
+    );
+
+  NamedCommands.registerCommand(
+    "autoOutake",
+    Commands.parallel(
+      m_IntakeShooterSubsystem.autoReverseIntakeShooterCommand(),
+      m_FeederSubsystem.autoFeederCommand()));
+  m_localNamedCommands.put("autoOutake", Commands.parallel(
+      m_IntakeShooterSubsystem.autoReverseIntakeShooterCommand(),
+      m_FeederSubsystem.autoFeederCommand()));
 
     // Register individual commands for backward compatibility with PathPlanner
-    NamedCommands.registerCommand(
-        "autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
-    NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
-    NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
+  NamedCommands.registerCommand(
+    "autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
+  m_localNamedCommands.put("autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
+  NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
+  m_localNamedCommands.put("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
+  NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
+  m_localNamedCommands.put("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
     
     // The SendableChooser shows a dropdown on the driver station so you can
     // pick which autonomous routine to run before a match.
-    m_autoChooser = new SendableChooser<>();
-    m_autoChooser.setDefaultOption("Default", new InstantCommand());
+  m_autoChooser = new SendableChooser<>();
+  m_autoChooser.setDefaultOption("Default", "Default");
+    // Try to populate the chooser with PathPlanner-registered autos so they
+    // appear as a dropdown on the dashboard. We use reflection in case the
+    // NamedCommands API differs between versions or isn't present at compile
+    // time.
+    try {
+      Class<?> cls = NamedCommands.class;
+      java.lang.reflect.Method m = null;
+      // Try common method names that return a collection of registered auto names
+      try {
+        m = cls.getMethod("getRegisteredNames");
+      } catch (NoSuchMethodException e) {
+        try {
+          m = cls.getMethod("getRegisteredCommandNames");
+        } catch (NoSuchMethodException e2) {
+          m = null;
+        }
+      }
+
+      if (m != null) {
+        Object res = m.invoke(null);
+        if (res instanceof java.util.Collection) {
+          @SuppressWarnings("unchecked")
+          java.util.Collection<String> names = (java.util.Collection<String>) res;
+          for (String name : names) {
+            m_autoChooser.addOption(name, name);
+          }
+        }
+      } else {
+        // Fallback: populate chooser with locally-registered command names
+        for (String name : m_localNamedCommands.keySet()) {
+          m_autoChooser.addOption(name, name);
+        }
+      }
+    } catch (Exception e) {
+      System.out.println("Could not populate PathPlanner autos into chooser: " + e.getMessage());
+      // Ensure chooser has at least our local commands
+      for (String name : m_localNamedCommands.keySet()) {
+        m_autoChooser.addOption(name, name);
+      }
+    }
+
     SmartDashboard.putData("Auto Mode", m_autoChooser);
 
     // Wire up buttons to commands (see method below). This keeps the
@@ -270,7 +338,31 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    Command selected = m_autoChooser.getSelected();
-    return selected != null ? selected : new InstantCommand();
+    String selected = m_autoChooser.getSelected();
+    if (selected == null || selected.equals("Default")) {
+      return new InstantCommand();
+    }
+
+    // First, try to resolve the named auto via NamedCommands.getCommand(name)
+    try {
+      java.lang.reflect.Method m = NamedCommands.class.getMethod("getCommand", String.class);
+      Object cmd = m.invoke(null, selected);
+      if (cmd instanceof Command) {
+        return (Command) cmd;
+      }
+    } catch (NoSuchMethodException ignored) {
+      // Method not present on this version of PathPlanner - fallthrough
+    } catch (Exception e) {
+      System.out.println("Error resolving NamedCommand via reflection: " + e.getMessage());
+    }
+
+    // If reflection failed or method missing, check our local map of registered commands
+    if (m_localNamedCommands.containsKey(selected)) {
+      return m_localNamedCommands.get(selected);
+    }
+
+    // Unknown selection: return a no-op and print a warning to help debugging
+    System.out.println("Warning: Unknown autonomous selected: " + selected);
+    return new InstantCommand();
   }
 }

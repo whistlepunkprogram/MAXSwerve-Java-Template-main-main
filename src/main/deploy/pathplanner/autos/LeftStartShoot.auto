@@ -9,50 +9,6 @@
           "data": {
             "pathName": "LeftStartShoot"
           }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "LeftSideJiggle"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
-          }
         }
       ]
     }

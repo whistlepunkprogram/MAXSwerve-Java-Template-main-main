@@ -9,50 +9,6 @@
           "data": {
             "pathName": "CenterStartShoot"
           }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "CenterStartJiggle"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
-          }
         }
       ]
     }
