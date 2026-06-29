@@ -110,6 +110,17 @@ public class RobotContainer {
   m_localNamedCommands.put("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
   NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
   m_localNamedCommands.put("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
+
+  // Register deploy-time PathPlanner autos as named commands so the
+  // PathPlanner loader doesn't warn when it looks up these autos. These
+  // are currently no-op placeholders; replace them with real sequence
+  // commands if you want the autos to execute robot behavior directly.
+  NamedCommands.registerCommand("CenterStartShoot", new InstantCommand());
+  m_localNamedCommands.put("CenterStartShoot", new InstantCommand());
+  NamedCommands.registerCommand("LeftStartShoot", new InstantCommand());
+  m_localNamedCommands.put("LeftStartShoot", new InstantCommand());
+  NamedCommands.registerCommand("RightStartShoot", new InstantCommand());
+  m_localNamedCommands.put("RightStartShoot", new InstantCommand());
     
     // The SendableChooser shows a dropdown on the driver station so you can
     // pick which autonomous routine to run before a match.
@@ -143,10 +154,34 @@ public class RobotContainer {
           }
         }
       } else {
-        // Fallback: populate chooser with locally-registered command names
-        for (String name : m_localNamedCommands.keySet()) {
-          m_autoChooser.addOption(name, name);
+        // If NamedCommands doesn't expose a registry method, try populating
+        // the chooser from deployed .auto files. PathPlanner deploys autos to
+        // /home/lvuser/deploy/pathplanner/autos on the robot. During local
+        // testing the files live in src/main/deploy/pathplanner/autos.
+        try {
+          java.nio.file.Path robotAutos = java.nio.file.Paths.get("/home/lvuser/deploy/pathplanner/autos");
+          java.nio.file.Path localAutos = java.nio.file.Paths.get("src/main/deploy/pathplanner/autos");
+          java.nio.file.Path chosenDir = java.nio.file.Files.exists(robotAutos) ? robotAutos : localAutos;
+          if (java.nio.file.Files.exists(chosenDir)) {
+            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.list(chosenDir)) {
+              stream.filter(p -> p.toString().endsWith(".auto")).forEach(p -> {
+                String fileName = p.getFileName().toString();
+                String name = fileName.substring(0, fileName.length() - ".auto".length());
+                m_autoChooser.addOption(name, name);
+              });
+            }
+          } else {
+            // Fallback to local map
+            for (String name : m_localNamedCommands.keySet()) {
+              m_autoChooser.addOption(name, name);
+            }
+          }
+        } catch (Exception ioe) {
+          for (String name : m_localNamedCommands.keySet()) {
+            m_autoChooser.addOption(name, name);
+          }
         }
+        // Fallback: populate chooser with locally-registered command names
       }
     } catch (Exception e) {
       System.out.println("Could not populate PathPlanner autos into chooser: " + e.getMessage());
@@ -354,6 +389,46 @@ public class RobotContainer {
       // Method not present on this version of PathPlanner - fallthrough
     } catch (Exception e) {
       System.out.println("Error resolving NamedCommand via reflection: " + e.getMessage());
+    }
+
+    // Next, try to load the .auto file into a Command reflectively. Different
+    // PathPlanner versions expose different APIs; try a few likely class/method
+    // pairs until one succeeds. This allows selecting an auto by filename in
+    // the chooser and running the corresponding PathPlanner auto sequence.
+    String[] candidateClasses = new String[] {
+      "com.pathplanner.lib.auto.AutoBuilder",
+      "com.pathplanner.lib.auto.PathPlannerAutoLoader",
+      "com.pathplanner.lib.auto.AutoLoader",
+      "com.pathplanner.lib.auto.AutoGenerator"
+    };
+
+    String[] candidateMethods = new String[] {
+      "loadAuto",
+      "loadAutoCommand",
+      "createAuto",
+      "getAutoCommand",
+      "loadAutoFromFile"
+    };
+
+    for (String clsName : candidateClasses) {
+      try {
+        Class<?> cls = Class.forName(clsName);
+        for (String methodName : candidateMethods) {
+          try {
+            java.lang.reflect.Method m = cls.getMethod(methodName, String.class);
+            Object res = m.invoke(null, selected);
+            if (res instanceof Command) {
+              return (Command) res;
+            }
+          } catch (NoSuchMethodException nsme) {
+            // try next method
+          }
+        }
+      } catch (ClassNotFoundException cnfe) {
+        // try next class
+      } catch (Exception e) {
+        System.out.println("Error trying to load auto via " + clsName + ": " + e.getMessage());
+      }
     }
 
     // If reflection failed or method missing, check our local map of registered commands
