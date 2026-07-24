@@ -154,6 +154,22 @@ public class RobotContainer {
             m_justShooterSubsystem.stopJustShooterCommand())));
 
   m_operatorController
+    .y()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-6000.0, 0.95),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_FeederSubsystem.stopFeederCommand(),
+        Commands.waitSeconds(0.4)
+          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+            m_justShooterSubsystem.stopJustShooterCommand())));
+
+  m_operatorController
     .leftTrigger()
     .onTrue(
       new ParallelCommandGroup(
@@ -204,6 +220,22 @@ public class RobotContainer {
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
         m_justShooterSubsystem.runJustShooterPIDCommand(),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+    .onFalse(
+      Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+        m_FeederSubsystem.stopFeederCommand(),
+        Commands.waitSeconds(0.4)
+          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+            m_justShooterSubsystem.stopJustShooterCommand())));
+
+  m_driverController
+    .y()
+    .onTrue(
+      new ParallelCommandGroup(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-6000.0, 0.95),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(

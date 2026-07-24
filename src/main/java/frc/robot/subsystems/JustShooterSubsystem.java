@@ -8,10 +8,11 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.RelativeEncoder;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.networktables.GenericEntry;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -30,29 +31,34 @@ public class JustShooterSubsystem extends SubsystemBase {
   // Default speeds and PID constants. These are starting values and should
   // be tuned on the real robot. Negative sign may be needed depending on
   // motor wiring and wheel orientation.
-  private static final double kDefaultShootSpeed = -0.65; // open-loop power
+  private static final double kDefaultShootSpeed = -0.95; // open-loop power
   private static final double kReverseShootSpeed = 1.0; // reverse to clear jams
   private static final double kIdleSpeed = -0.30; // slow idle when not shooting
   // PID closed-loop defaults (target RPM and controller gains)
-  private static final double kDefaultShootRPM = -5500.0;
+  private static final double kNormalShootRPM = -4500.0;
   private static final double kP = 0.00025;
   private static final double kI = 0.0;
   private static final double kD = 0.0;
+  // Feedforward constants (starting values, tune on-robot)
+  private static final double kS = 0.15;
+  private static final double kV = 0.0020;
+  private static final double kA = 0.0;
 
   // Encoder and PID controller
   // The encoder measures the wheel speed (RPM). We use a PIDController to
   // compute motor power to reach a target RPM when closed-loop control is on.
   private final RelativeEncoder m_encoder = JustShooterMotor.getEncoder();
   private final PIDController m_pid = new PIDController(kP, kI, kD);
+  private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(kS, kV, kA);
   private boolean m_pidEnabled = false; // true when closed-loop mode is active
   private double m_pidTargetRPM = 0.0; // desired wheel speed in RPM
+  // Max absolute PID output while in closed-loop mode.
+  private double m_pidOutputCap = 1.0;
   // Shuffleboard entries
   private final GenericEntry m_measuredRpmEntry;
   private final GenericEntry m_targetRpmEntry;
   private final GenericEntry m_pidEnabledEntry;
   private final GenericEntry m_pidOutputEntry;
-  // A chooser so users can pick a preset RPM from Shuffleboard
-  private final SendableChooser<Double> m_rpmChooser;
 
   public JustShooterSubsystem() {
     // Set motor configuration (current limits, braking mode, etc.)
@@ -62,13 +68,6 @@ public class JustShooterSubsystem extends SubsystemBase {
     // shooter while tuning or testing. These show RPM, target RPM, PID
     // enabled state, and the controller output.
     var tab = Shuffleboard.getTab("Shooter");
-    // RPM chooser: provides simple preset setpoints to pick from on the dashboard
-    m_rpmChooser = new SendableChooser<>();
-    m_rpmChooser.setDefaultOption("Default (-5500)", kDefaultShootRPM);
-    m_rpmChooser.addOption("Low (-3000)", -3000.0);
-    m_rpmChooser.addOption("Medium (-4500)", -4500.0);
-    m_rpmChooser.addOption("High (-6000)", -6000.0);
-    tab.add("RPM Setpoint", m_rpmChooser);
     m_measuredRpmEntry = tab.add("Measured RPM", 0.0).getEntry();
     m_targetRpmEntry = tab.add("Target RPM", 0.0).getEntry();
     m_pidEnabledEntry = tab.add("PID Enabled", false).getEntry();
@@ -110,12 +109,13 @@ public class JustShooterSubsystem extends SubsystemBase {
 
   /** Run shooter closed-loop to target RPM while held. */
   public Command runJustShooterPIDCommand() {
-    // Use the chooser value if the user picked one on Shuffleboard.
+    return runHighRPMJustShooterCommand(kNormalShootRPM, 1.0);
+  }
+
+  /** Run shooter closed-loop at a provided RPM with a configurable output cap while held. */
+  public Command runHighRPMJustShooterCommand(double rpm, double outputCap) {
     return Commands.startEnd(
-        () -> {
-          Double selection = m_rpmChooser.getSelected();
-          startPIDControl(selection != null ? selection : kDefaultShootRPM);
-        },
+        () -> startPIDControlWithCap(rpm, outputCap),
         this::stopPIDControl,
         this);
   }
@@ -134,7 +134,7 @@ public class JustShooterSubsystem extends SubsystemBase {
   // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.
   public Command autoJustShooterCommand() {
   return Commands.sequence(
-    Commands.runOnce(() -> startPIDControl(kDefaultShootRPM), this), // Start shooter closed-loop
+    Commands.runOnce(() -> startPIDControlWithCap(kNormalShootRPM, 1.0), this), // Start shooter closed-loop
     Commands.waitSeconds(5.5), // Wait for 5.5 seconds
     Commands.runOnce(this::stopPIDControl, this));
   }
@@ -146,10 +146,11 @@ public class JustShooterSubsystem extends SubsystemBase {
         Commands.runOnce(this::stopShooter, this));
   }
 
-  // Start the closed-loop controller and set the desired RPM.
-  private void startPIDControl(double rpm) {
+  // Start closed-loop with a custom output cap (absolute value, clamped to [0, 1]).
+  private void startPIDControlWithCap(double rpm, double cap) {
     m_pidTargetRPM = rpm;
     m_pid.reset();
+    m_pidOutputCap = MathUtil.clamp(Math.abs(cap), 0.0, 1.0);
     m_pidEnabled = true;
   }
 
@@ -167,9 +168,19 @@ public class JustShooterSubsystem extends SubsystemBase {
     // useful values to Shuffleboard so students can see what is happening.
     if (m_pidEnabled) {
       double currentRPM = m_encoder.getVelocity();
-      double output = m_pid.calculate(currentRPM, m_pidTargetRPM);
-      // PID output is a motor power, clamp to valid range
-      output = MathUtil.clamp(output, -1.0, 1.0);
+      // PID correction term based on RPM error.
+      double pidOutput = m_pid.calculate(currentRPM, m_pidTargetRPM);
+
+      // Feedforward term converted from volts to normalized motor output.
+      double ffVolts = m_feedforward.calculate(m_pidTargetRPM);
+      double batteryVolts = RobotController.getBatteryVoltage();
+      double ffOutput = batteryVolts > 1e-6 ? ffVolts / batteryVolts : 0.0;
+
+      // Combined control output.
+      double output = ffOutput + pidOutput;
+
+      // Clamp to configured capped range.
+      output = MathUtil.clamp(output, -m_pidOutputCap, m_pidOutputCap);
       setShooterSpeed(output);
       // Update shuffleboard values while PID is active
       m_measuredRpmEntry.setDouble(currentRPM);
