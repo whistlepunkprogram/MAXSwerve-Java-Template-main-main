@@ -116,7 +116,7 @@ public class JustShooterSubsystem extends SubsystemBase {
   public Command runHighRPMJustShooterCommand(double rpm, double outputCap) {
     return Commands.startEnd(
         () -> startPIDControlWithCap(rpm, outputCap),
-        this::stopPIDControl,
+    this::stopPIDControlToIdle,
         this);
   }
 
@@ -158,6 +158,12 @@ public class JustShooterSubsystem extends SubsystemBase {
   private void stopPIDControl() {
     m_pidEnabled = false;
     stopShooter();
+  }
+
+  // Stop closed-loop control and immediately transition to idle speed.
+  private void stopPIDControlToIdle() {
+    m_pidEnabled = false;
+    setShooterSpeed(kIdleSpeed);
   }
 
   @Override

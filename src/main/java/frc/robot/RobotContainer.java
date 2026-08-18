@@ -8,7 +8,7 @@ import edu.wpi.first.math.MathUtil;
 // import edu.wpi.first.wpilibj.XboxController; // unused
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-// import com.pathplanner.lib.auto.AutoBuilder; // unused
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.DriveSubsystem;
@@ -79,15 +79,17 @@ public class RobotContainer {
             m_FeederSubsystem.autoFeederCommand()));
 
     // Register individual commands for backward compatibility with PathPlanner
-    NamedCommands.registerCommand(
-        "autoIntakeShooterCommand", m_IntakeShooterSubsystem.autoIntakeShooterCommand());
+  NamedCommands.registerCommand(
+    "autoIntakeShooterCommand",
+    Commands.parallel(
+      m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
+      m_justShooterSubsystem.autoJustShooterCommand()));
     NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
     NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
     
-    // The SendableChooser shows a dropdown on the driver station so you can
-    // pick which autonomous routine to run before a match.
-    m_autoChooser = new SendableChooser<>();
-    m_autoChooser.setDefaultOption("Default", new InstantCommand());
+  // Build a chooser directly from PathPlanner autos found in deploy/pathplanner/autos.
+  // This automatically lists available .auto routes on Shuffleboard.
+  m_autoChooser = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Mode", m_autoChooser);
 
     // Wire up buttons to commands (see method below). This keeps the
