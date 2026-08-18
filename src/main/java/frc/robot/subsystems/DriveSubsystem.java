@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -26,6 +27,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.Constants.OIConstants;
 
 public class DriveSubsystem extends SubsystemBase {
   // Create MAXSwerveModules
@@ -52,6 +54,15 @@ public class DriveSubsystem extends SubsystemBase {
   // The gyro sensor
  // private final ADIS16470_IMU m_gyro1 = new ADIS16470_IMU();
   private final Pigeon2 m_gyro = new Pigeon2(9);
+
+  // Slew rate limiters smooth driver joystick requests to reduce sudden
+  // acceleration/rotation spikes during teleop control.
+  private final SlewRateLimiter m_xSpeedLimiter =
+    new SlewRateLimiter(OIConstants.kDriveTranslationRateLimit);
+  private final SlewRateLimiter m_ySpeedLimiter =
+    new SlewRateLimiter(OIConstants.kDriveTranslationRateLimit);
+  private final SlewRateLimiter m_rotLimiter =
+    new SlewRateLimiter(OIConstants.kDriveRotationRateLimit);
 
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
@@ -138,6 +149,11 @@ public class DriveSubsystem extends SubsystemBase {
    *                      field.
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    // Apply slew limiting to driver-commanded normalized inputs.
+    xSpeed = m_xSpeedLimiter.calculate(xSpeed);
+    ySpeed = m_ySpeedLimiter.calculate(ySpeed);
+    rot = m_rotLimiter.calculate(rot);
+
     // Convert the commanded speeds into the correct units for the drivetrain
     double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
     double ySpeedDelivered = ySpeed * DriveConstants.kMaxSpeedMetersPerSecond;
