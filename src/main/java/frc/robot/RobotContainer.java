@@ -116,8 +116,8 @@ public class RobotContainer {
   // are reusable pieces of behavior (start/stop shooter, run intake, etc.).
 
   // Driver quick controls:
-  // - Right bumper: hold this to make the robot 'set X' (a defensive stance)
-  m_driverController.rightBumper()
+  // - X button: hold this to make the robot 'set X' (a defensive stance)
+  m_driverController.x()
     .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
   // - Start button: press to reset the robot's gyro heading to zero
   m_driverController.start()
@@ -203,7 +203,7 @@ public class RobotContainer {
   // The driver gets simpler copies of the operator controls so the driver
   // can shoot or intake without the operator. These are intentionally the
   // same commands to keep behavior predictable.
-  m_driverController.x()
+  m_driverController.y()
     .onTrue(
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
@@ -232,7 +232,7 @@ public class RobotContainer {
             m_justShooterSubsystem.stopJustShooterCommand())));
 
   m_driverController
-    .y()
+    .rightBumper()
     .onTrue(
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),

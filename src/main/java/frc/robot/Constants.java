@@ -23,7 +23,7 @@ import com.pathplanner.lib.config.RobotConfig;
  */
 public final class Constants {
   public static final class DriveConstants {
-    public static final double kMaxSpeedMetersPerSecond = 4.8;
+    public static final double kMaxSpeedMetersPerSecond = 4.3;
     public static final double kMaxAngularSpeed = 2 * Math.PI; // radians per second
 
     public static final double kTrackWidth = Units.inchesToMeters(24);
