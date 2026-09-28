@@ -83,9 +83,12 @@ public class RobotContainer {
     "autoIntakeShooterCommand",
     Commands.parallel(
       m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
-      m_justShooterSubsystem.autoJustShooterCommand()));
+      m_justShooterSubsystem.runJustShooterPIDCommand().withTimeout(5.5)));
     NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
     NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
+  NamedCommands.registerCommand(
+    "autoPIDShooter",
+    m_justShooterSubsystem.runJustShooterPIDCommand().withTimeout(5.5));
     
   // Build a chooser directly from PathPlanner autos found in deploy/pathplanner/autos.
   // This automatically lists available .auto routes on Shuffleboard.
@@ -161,7 +164,7 @@ public class RobotContainer {
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-6000.0, 0.95),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-4200.0, 0.9),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
@@ -237,7 +240,7 @@ public class RobotContainer {
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-6000.0, 0.95),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3600.0, 0.75),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(

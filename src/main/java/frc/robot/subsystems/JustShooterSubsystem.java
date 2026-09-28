@@ -33,9 +33,8 @@ public class JustShooterSubsystem extends SubsystemBase {
   // motor wiring and wheel orientation.
   private static final double kDefaultShootSpeed = -0.95; // open-loop power
   private static final double kReverseShootSpeed = 1.0; // reverse to clear jams
-  private static final double kIdleSpeed = -0.30; // slow idle when not shooting
   // PID closed-loop defaults (target RPM and controller gains)
-  private static final double kNormalShootRPM = -4500.0;
+  private static final double kNormalShootRPM = -3500.0;
   private static final double kP = 0.00025;
   private static final double kI = 0.0;
   private static final double kD = 0.0;
@@ -109,14 +108,14 @@ public class JustShooterSubsystem extends SubsystemBase {
 
   /** Run shooter closed-loop to target RPM while held. */
   public Command runJustShooterPIDCommand() {
-    return runHighRPMJustShooterCommand(kNormalShootRPM, 1.0);
+    return runHighRPMJustShooterCommand(-3000.0, 0.65);
   }
 
   /** Run shooter closed-loop at a provided RPM with a configurable output cap while held. */
   public Command runHighRPMJustShooterCommand(double rpm, double outputCap) {
     return Commands.startEnd(
         () -> startPIDControlWithCap(rpm, outputCap),
-    this::stopPIDControlToIdle,
+    this::stopPIDControl,
         this);
   }
 
@@ -125,10 +124,9 @@ public class JustShooterSubsystem extends SubsystemBase {
     return Commands.startEnd(() -> setShooterSpeed(kReverseShootSpeed), this::stopShooter, this);
   }
 
-  // STOP/IDLE — sets the shooter to a low idle speed to keep it spinning
-  // (or you can change to stop completely by setting 0.0).
+  // Stop command used by other command groups.
   public Command stopJustShooterCommand() {
-    return Commands.runOnce(() -> setShooterSpeed(kIdleSpeed), this);
+    return Commands.runOnce(this::stopShooter, this);
   }
 
   // AUTO COMMAND FOR PATH PLANNER TO SHOOT FUEL THAT ARE ALREADY LOADED.
@@ -158,12 +156,6 @@ public class JustShooterSubsystem extends SubsystemBase {
   private void stopPIDControl() {
     m_pidEnabled = false;
     stopShooter();
-  }
-
-  // Stop closed-loop control and immediately transition to idle speed.
-  private void stopPIDControlToIdle() {
-    m_pidEnabled = false;
-    setShooterSpeed(kIdleSpeed);
   }
 
   @Override

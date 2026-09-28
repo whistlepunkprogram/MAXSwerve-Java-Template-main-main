@@ -3,32 +3,37 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.5036773428232504,
-        "y": 6.0738671411625145
+        "x": 7.648944365192582,
+        "y": 4.74015691868759
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.0919422018712837,
-        "y": 6.135037928804577
+        "x": 5.293095865377448,
+        "y": 8.415110299567864
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "GoGetLeft2"
     },
     {
       "anchor": {
-        "x": 3.3274322396576315,
-        "y": 4.662524964336662
+        "x": 5.915164051355206,
+        "y": 7.41845934379458
       },
       "prevControl": {
-        "x": 2.732253922967189,
-        "y": 5.374151212553495
+        "x": 6.085256054439148,
+        "y": 7.139148169176507
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "LeftShootEnd"
+      "linkedName": "GoGetLeft3"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.3049040511727088,
+      "rotationDegrees": 0.5409769821978906
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -42,13 +47,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 145.84030545433058
+    "rotation": 0.0
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -88.49256424122504
   },
   "useDefaultConstraints": true
 }

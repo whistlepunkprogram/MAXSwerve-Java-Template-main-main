@@ -7,7 +7,31 @@
         {
           "type": "path",
           "data": {
-            "pathName": "CenterStartShoot"
+            "pathName": "GoGetLeft1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoIntake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "GoGetLeft2"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "GoGetLeft3"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "GoGetLeft4"
           }
         },
         {
