@@ -61,35 +61,38 @@ public class RobotContainer {
     m_FeederSubsystem = new FeederSubsystem();
 
     // Set up auto commands
-    NamedCommands.registerCommand(
-        "autoIntake",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoSlowIntakeCommand(),
-            m_FeederSubsystem.autoReverseFeederCommand()));
-    NamedCommands.registerCommand(
-        "autoShoot",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
-            m_justShooterSubsystem.autoJustShooterCommand(),
-            m_FeederSubsystem.autoFeederCommand()));
-    NamedCommands.registerCommand(
-        "autoOutake",
-        Commands.parallel(
-            m_IntakeShooterSubsystem.autoReverseIntakeShooterCommand(),
-            m_FeederSubsystem.autoFeederCommand()));
-
-    // Register individual commands for backward compatibility with PathPlanner
-  NamedCommands.registerCommand(
-    "autoIntakeShooterCommand",
+ 
+ NamedCommands.registerCommand(
+    "AutoShoot",
     Commands.parallel(
-      m_IntakeShooterSubsystem.autoIntakeShooterCommand(),
-      m_justShooterSubsystem.runJustShooterPIDCommand().withTimeout(5.5)));
-    NamedCommands.registerCommand("autoFeederCommand", m_FeederSubsystem.autoFeederCommand());
-    NamedCommands.registerCommand("autoJustShooterCommand", m_justShooterSubsystem.autoJustShooterCommand());
-  NamedCommands.registerCommand(
-    "autoPIDShooter",
-    m_justShooterSubsystem.runJustShooterPIDCommand().withTimeout(5.5));
-    
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+        m_justShooterSubsystem.runJustShooterPIDCommand(),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand()))
+      .withTimeout(8.0)
+      .andThen(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_FeederSubsystem.stopFeederCommand(),
+          Commands.waitSeconds(0.4)
+            .andThen(
+              m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+              m_justShooterSubsystem.stopJustShooterCommand()))));
+
+ NamedCommands.registerCommand(
+    "AutoIntake",
+    Commands.parallel(
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
+        m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
+        m_FeederSubsystem.runFeederCommand())
+      .withTimeout(7.0)
+      .andThen(
+        Commands.parallel(
+          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+          m_FeederSubsystem.stopFeederCommand())));
+
+
   // Build a chooser directly from PathPlanner autos found in deploy/pathplanner/autos.
   // This automatically lists available .auto routes on Shuffleboard.
   m_autoChooser = AutoBuilder.buildAutoChooser();
