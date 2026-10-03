@@ -11,22 +11,9 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
+            "name": "AutoShoot"
           }
         }
       ]

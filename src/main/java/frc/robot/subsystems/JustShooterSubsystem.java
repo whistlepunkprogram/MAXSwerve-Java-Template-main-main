@@ -108,7 +108,7 @@ public class JustShooterSubsystem extends SubsystemBase {
 
   /** Run shooter closed-loop to target RPM while held. */
   public Command runJustShooterPIDCommand() {
-    return runHighRPMJustShooterCommand(-3000.0, 0.65);
+    return runHighRPMJustShooterCommand(-3100.0, 0.68);
   }
 
   /** Run shooter closed-loop at a provided RPM with a configurable output cap while held. */

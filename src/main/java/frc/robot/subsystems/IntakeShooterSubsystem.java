@@ -28,6 +28,16 @@ public class IntakeShooterSubsystem extends SubsystemBase {
     intakeShooterMotor.configure(
         intakeShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
+
+  /** Directly set intake shooter motor speed. */
+  public void setIntakeShooterSpeed(double speed) {
+    intakeShooterMotor.set(speed);
+  }
+
+  /** Directly stop intake shooter motor. */
+  public void stopIntakeShooter() {
+    setIntakeShooterSpeed(0.0);
+  }
   // Intake speed for intaking fuel
   public Command runSlowIntakeCommand() {
     return Commands.runOnce(

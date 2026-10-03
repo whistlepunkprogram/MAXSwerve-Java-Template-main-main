@@ -11,15 +11,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "deadline",
           "data": {
-            "name": "AutoIntake"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "GoGetRight2"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "GoGetRight2"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake"
+                }
+              }
+            ]
           }
         },
         {
@@ -29,28 +36,15 @@
           }
         },
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "GoGetRight4"
+            "name": "AutoShoot"
           }
         },
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoIntakeShooterCommand"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "autoFeederCommand"
-                }
-              }
-            ]
+            "pathName": "GoGetRight4"
           }
         }
       ]

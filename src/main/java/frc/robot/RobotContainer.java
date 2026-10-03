@@ -69,7 +69,7 @@ public class RobotContainer {
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
         m_justShooterSubsystem.runJustShooterPIDCommand(),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand()))
-      .withTimeout(8.0)
+      .withTimeout(7.0)
       .andThen(
         Commands.parallel(
           m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
@@ -81,16 +81,20 @@ public class RobotContainer {
 
  NamedCommands.registerCommand(
     "AutoIntake",
-    Commands.parallel(
+    Commands.sequence(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-        m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
-        m_FeederSubsystem.runFeederCommand())
-      .withTimeout(7.0)
-      .andThen(
+        Commands.run(
+                () -> {
+                  m_IntakeShooterSubsystem.setIntakeShooterSpeed(0.35);
+                  m_FeederSubsystem.setFeederSpeed(0.6);
+                },
+                m_IntakeShooterSubsystem,
+                m_FeederSubsystem)
+            .withTimeout(3.0),
         Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-          m_FeederSubsystem.stopFeederCommand())));
+            m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
+            Commands.runOnce(m_IntakeShooterSubsystem::stopIntakeShooter, m_IntakeShooterSubsystem),
+            Commands.runOnce(m_FeederSubsystem::stopFeeder, m_FeederSubsystem))));
 
 
   // Build a chooser directly from PathPlanner autos found in deploy/pathplanner/autos.
@@ -136,14 +140,17 @@ public class RobotContainer {
     .rightBumper()
     .onTrue(
       new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
-        m_IntakeShooterSubsystem.runSlowIntakeCommand(),
-        m_FeederSubsystem.reverseFeederCommand()))
+        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
+        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3600.0, 0.75),
+        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+        m_FeederSubsystem.stopFeederCommand(),
+        Commands.waitSeconds(0.4)
+          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
+            m_justShooterSubsystem.stopJustShooterCommand())));
 
   m_operatorController
     .rightTrigger()

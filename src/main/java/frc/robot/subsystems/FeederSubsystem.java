@@ -28,6 +28,16 @@ public class FeederSubsystem extends SubsystemBase {
         feederMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
+  /** Directly set feeder motor speed. */
+  public void setFeederSpeed(double speed) {
+    feederMotor.set(speed);
+  }
+
+  /** Directly stop feeder motor. */
+  public void stopFeeder() {
+    setFeederSpeed(0.0);
+  }
+
   // this command will load fuel into the shooter.
   public Command runFeederCommand() {
     return Commands.runOnce(() -> feederMotor.set(0.6), this);
