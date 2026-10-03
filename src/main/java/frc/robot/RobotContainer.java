@@ -1,7 +1,7 @@
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
-
+// NMRC OPEN READY COMMIT
 package frc.robot;
 
 import edu.wpi.first.math.MathUtil;
@@ -159,7 +159,7 @@ public class RobotContainer {
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
         m_justShooterSubsystem.runJustShooterPIDCommand(),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+        Commands.waitSeconds(0.9).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
@@ -175,7 +175,7 @@ public class RobotContainer {
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
   m_justShooterSubsystem.runHighRPMJustShooterCommand(-4200.0, 0.9),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
+        Commands.waitSeconds(0.9).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
