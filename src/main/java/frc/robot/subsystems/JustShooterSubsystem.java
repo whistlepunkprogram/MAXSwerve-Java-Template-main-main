@@ -19,12 +19,18 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class JustShooterSubsystem extends SubsystemBase {
 
+  private static final int kPrimaryShooterCanId = 14;
+  private static final int kSecondaryShooterCanId = 15;
+
   // Motor configuration for the shooter
   // This is the actual motor controller that spins the flywheel.
   // The ID (14) is the CAN bus address for the motor controller.
   private static SparkFlex JustShooterMotor =
-    new SparkFlex(14, MotorType.kBrushless);
+    new SparkFlex(kPrimaryShooterCanId, MotorType.kBrushless);
+  private static SparkFlex JustShooterMotorSecondary =
+    new SparkFlex(kSecondaryShooterCanId, MotorType.kBrushless);
   private static SparkFlexConfig JustShooterMotorConfig = new SparkFlexConfig();
+  private static SparkFlexConfig JustShooterMotorSecondaryConfig = new SparkFlexConfig();
   // Keep track of the last commanded open-loop speed (for debugging)
   private double m_lastSpeed = 0.0;
 
@@ -76,14 +82,21 @@ public class JustShooterSubsystem extends SubsystemBase {
   /** Configure motor controller parameters for the intake/shooter motor. */
   private void configureJustShooter() {
     JustShooterMotorConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(80);
+  JustShooterMotorSecondaryConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(80);
 
     JustShooterMotor.configure(
         JustShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+  JustShooterMotorSecondary.configure(
+    JustShooterMotorSecondaryConfig,
+    ResetMode.kResetSafeParameters,
+    PersistMode.kPersistParameters);
   }
 
   /** Set shooter motor speed (direct control). */
   public void setShooterSpeed(double speed) {
     JustShooterMotor.set(speed);
+    JustShooterMotorSecondary.set(-speed);
     m_lastSpeed = speed;
   }
 
