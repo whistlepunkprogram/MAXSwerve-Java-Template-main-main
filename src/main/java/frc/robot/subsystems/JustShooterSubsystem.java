@@ -81,8 +81,8 @@ public class JustShooterSubsystem extends SubsystemBase {
 
   /** Configure motor controller parameters for the intake/shooter motor. */
   private void configureJustShooter() {
-    JustShooterMotorConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(80);
-  JustShooterMotorSecondaryConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(80);
+    JustShooterMotorConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(80);
+  JustShooterMotorSecondaryConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(80);
 
     JustShooterMotor.configure(
         JustShooterMotorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
