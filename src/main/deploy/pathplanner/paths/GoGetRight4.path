@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.1851069900142646,
-        "y": 3.1616405135520687
+        "x": 2.9263338088445074,
+        "y": 3.0322539229671905
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.7193152639087006,
-        "y": 2.191241084165478
+        "x": 2.4605420827389435,
+        "y": 2.0618544935806
       },
       "isLocked": false,
       "linkedName": "GoGetRight3"
@@ -69,7 +69,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -148.39249775375094
+    "rotation": -147.6525565005578
   },
   "useDefaultConstraints": true
 }

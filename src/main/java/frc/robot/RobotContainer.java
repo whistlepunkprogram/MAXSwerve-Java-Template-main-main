@@ -142,7 +142,7 @@ public class RobotContainer {
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3600.0, 0.75),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3750.0, 0.8),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
@@ -250,7 +250,7 @@ public class RobotContainer {
       new ParallelCommandGroup(
         m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
         m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3600.0, 0.75),
+  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3750.0, 0.8),
         Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
     .onFalse(
       Commands.parallel(
