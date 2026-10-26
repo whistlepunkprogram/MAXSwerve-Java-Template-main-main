@@ -38,6 +38,11 @@ public class IntakeShooterSubsystem extends SubsystemBase {
   public void stopIntakeShooter() {
     setIntakeShooterSpeed(0.0);
   }
+
+  /** Returns current commanded output for intake/shooter motor (-1 to 1). */
+  public double getIntakeShooterOutput() {
+    return intakeShooterMotor.get();
+  }
   // Intake speed for intaking fuel
   public Command runSlowIntakeCommand() {
     return Commands.runOnce(

@@ -4,23 +4,25 @@
 // NMRC OPEN READY COMMIT
 package frc.robot;
 
-import edu.wpi.first.math.MathUtil;
 // import edu.wpi.first.wpilibj.XboxController; // unused
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import frc.robot.Constants.OIConstants;
+import frc.robot.commands.AutoAimCommands;
+import frc.robot.commands.DriveCommands;
+import frc.robot.commands.LedCommands;
+import frc.robot.commands.ShooterCommands;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.IntakeShooterSubsystem;
 import frc.robot.subsystems.Blinken_LED_Subsystem;
 import frc.robot.subsystems.JustShooterSubsystem;
+import frc.robot.subsystems.VisionSubsystem;
+import frc.robot.tuning.AutoAimTuning;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 // JoystickButton removed because joystick support is disabled
 
@@ -31,6 +33,19 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+  /*
+   * STUDENT ARCHITECTURE GUIDE
+   * --------------------------
+   * - Subsystems: low-level hardware control (motors, sensors, direct set/get methods).
+   * - Command factories (frc.robot.commands): reusable robot behaviors.
+   * - RobotContainer: only wiring (bind buttons, set default commands, register autos).
+   *
+   * Why this style helps:
+   * - Easier to read during troubleshooting
+   * - Reusable in teleop and autonomous
+   * - Safer command requirements (fewer subsystem conflicts)
+   */
+
   // The robot's subsystems
   // Subsystems are the parts of the robot (drive, shooter, intake, lights).
   // We create one instance of each here so commands can use them.
@@ -38,6 +53,7 @@ public class RobotContainer {
   private final IntakeShooterSubsystem m_IntakeShooterSubsystem;
   private final JustShooterSubsystem m_justShooterSubsystem;
   private final FeederSubsystem m_FeederSubsystem;
+  private final VisionSubsystem m_visionSubsystem;
   // The LED subsystem controls decorative/status lights on the robot.
   private final Blinken_LED_Subsystem m_blinkenLEDSubsystem = new Blinken_LED_Subsystem();
 
@@ -59,234 +75,207 @@ public class RobotContainer {
     m_IntakeShooterSubsystem = new IntakeShooterSubsystem();
     m_justShooterSubsystem = new JustShooterSubsystem();
     m_FeederSubsystem = new FeederSubsystem();
+  m_visionSubsystem = new VisionSubsystem();
 
-    // Set up auto commands
+  // Set up auto commands.
+  // These names are used by PathPlanner NamedCommands inside .auto files.
  
  NamedCommands.registerCommand(
     "AutoShoot",
-    Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-        m_justShooterSubsystem.runJustShooterPIDCommand(),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand()))
-      .withTimeout(7.0)
-      .andThen(
-        Commands.parallel(
-          m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-          m_FeederSubsystem.stopFeederCommand(),
-          Commands.waitSeconds(0.4)
-            .andThen(
-              m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-              m_justShooterSubsystem.stopJustShooterCommand()))));
+    ShooterCommands.createAutoShootCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem));
 
  NamedCommands.registerCommand(
     "AutoIntake",
-    Commands.sequence(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-        Commands.run(
-                () -> {
-                  m_IntakeShooterSubsystem.setIntakeShooterSpeed(0.35);
-                  m_FeederSubsystem.setFeederSpeed(0.6);
-                },
-                m_IntakeShooterSubsystem,
-                m_FeederSubsystem)
-            .withTimeout(3.0),
-        Commands.parallel(
-            m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-            Commands.runOnce(m_IntakeShooterSubsystem::stopIntakeShooter, m_IntakeShooterSubsystem),
-            Commands.runOnce(m_FeederSubsystem::stopFeeder, m_FeederSubsystem))));
+    ShooterCommands.createAutoIntakeCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem));
 
 
   // Build a chooser directly from PathPlanner autos found in deploy/pathplanner/autos.
   // This automatically lists available .auto routes on Shuffleboard.
   m_autoChooser = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Mode", m_autoChooser);
+    AutoAimCommands.initializeTuningEntries();
 
-    // Wire up buttons to commands (see method below). This keeps the
-    // constructor small and readable.
+  // Wire up buttons to commands (see method below). Keeping this in one method makes
+  // the constructor easier to scan.
     configureButtonBindings();
+
+    // Centralized LED behavior (no direct LED button bindings).
+    // LEDs follow robot state continuously and do not compete with button commands.
+    m_blinkenLEDSubsystem.setDefaultCommand(
+      LedCommands.createStatusLedCommand(
+        m_blinkenLEDSubsystem,
+        m_IntakeShooterSubsystem::getIntakeShooterOutput,
+        Constants.ManipulatorConstants.kIntakeActiveOutputThreshold,
+        () -> m_driverController.leftBumper().getAsBoolean(),
+  AutoAimTuning::getHasHubTarget,
+  AutoAimTuning::getFeedReady));
 
   // Default command for the drive subsystem
   // This command runs whenever no other command needs the drive. It reads
   // controller sticks and drives the robot (field-oriented is true here).
   m_robotDrive.setDefaultCommand(
-    new RunCommand(
-      () -> m_robotDrive.drive(
-        -MathUtil.applyDeadband(m_driverController.getLeftY(), OIConstants.kDriveDeadband),
-        -MathUtil.applyDeadband(m_driverController.getLeftX(), OIConstants.kDriveDeadband),
-        -MathUtil.applyDeadband(m_driverController.getRightX(), OIConstants.kDriveDeadband),
-        true),
-      m_robotDrive));
+    DriveCommands.createDefaultDriveCommand(
+      m_robotDrive,
+      m_driverController::getLeftY,
+      m_driverController::getLeftX,
+      m_driverController::getRightX,
+      OIConstants.kDriveDeadband,
+      true));
 
   }
 
   private void configureButtonBindings() {
   // BUTTON BINDINGS
-  // This method connects controller buttons to actions (commands). Commands
-  // are reusable pieces of behavior (start/stop shooter, run intake, etc.).
+  // This method connects controller buttons to reusable command objects.
+  // Pattern to notice:
+  // - .onTrue(...) starts an action
+  // - .onFalse(...) performs orderly shutdown
+  // - .whileTrue(...) runs continuously while held
 
   // Driver quick controls:
   // - X button: hold this to make the robot 'set X' (a defensive stance)
   m_driverController.x()
-    .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive));
+    .whileTrue(DriveCommands.createHoldXCommand(m_robotDrive));
   // - Start button: press to reset the robot's gyro heading to zero
   m_driverController.start()
-    .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
+    .onTrue(DriveCommands.createZeroHeadingCommand(m_robotDrive));
 
-  // OPERATOR CONTROLS (these are the main shooter/intake controls)
+  // OPERATOR CONTROLS (main shooter/intake controls)
   // The operator has detailed control over shooter and intake behavior; we
   // mirror these on the driver where appropriate so either person can act.
   m_operatorController
     .rightBumper()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3750.0, 0.8),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_FeederSubsystem.stopFeederCommand(),
-        Commands.waitSeconds(0.4)
-          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-            m_justShooterSubsystem.stopJustShooterCommand())));
+    .onTrue(ShooterCommands.createShootWhileHeldCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      -3750.0,
+      0.8,
+      0.8))
+    .onFalse(ShooterCommands.createStopShotCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      0.4));
 
   m_operatorController
     .rightTrigger()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-        m_justShooterSubsystem.runJustShooterPIDCommand(),
-        Commands.waitSeconds(0.9).andThen(m_FeederSubsystem.reverseFeederCommand())))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_FeederSubsystem.stopFeederCommand(),
-        Commands.waitSeconds(0.4)
-          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-            m_justShooterSubsystem.stopJustShooterCommand())));
+    .onTrue(ShooterCommands.createShootWhileHeldCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      -3000.0,
+      0.68,
+      0.9))
+    .onFalse(ShooterCommands.createStopShotCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      0.4));
 
   m_operatorController
     .y()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-4200.0, 0.9),
-        Commands.waitSeconds(0.9).andThen(m_FeederSubsystem.reverseFeederCommand())))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_FeederSubsystem.stopFeederCommand(),
-        Commands.waitSeconds(0.4)
-          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-            m_justShooterSubsystem.stopJustShooterCommand())));
+    .onTrue(ShooterCommands.createShootWhileHeldCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      -4200.0,
+      0.9,
+      0.9))
+    .onFalse(ShooterCommands.createStopShotCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      0.4));
 
   m_operatorController
     .leftTrigger()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-        m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
-        m_FeederSubsystem.runFeederCommand()))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+    .onTrue(ShooterCommands.createReverseIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem))
+    .onFalse(ShooterCommands.createStopIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem));
 
   m_operatorController
     .leftBumper()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
-        m_IntakeShooterSubsystem.runUnjamShooterCommand(),
-        m_justShooterSubsystem.reverseJustShooterCommand(),
-        m_FeederSubsystem.runFeederCommand()))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_justShooterSubsystem.stopJustShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+    .onTrue(ShooterCommands.createUnjamCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem))
+    .onFalse(ShooterCommands.createStopUnjamCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem));
 
   // DRIVER DUPLICATE CONTROLS
   // The driver gets simpler copies of the operator controls so the driver
   // can shoot or intake without the operator. These are intentionally the
   // same commands to keep behavior predictable.
   m_driverController.y()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SINELON_PARTY),
-        m_IntakeShooterSubsystem.runSlowIntakeCommand(),
-        m_FeederSubsystem.reverseFeederCommand()))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+    .onTrue(ShooterCommands.createSlowIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem))
+    .onFalse(ShooterCommands.createStopIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem));
 
   m_driverController
     .rightTrigger()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-        m_justShooterSubsystem.runJustShooterPIDCommand(),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_FeederSubsystem.stopFeederCommand(),
-        Commands.waitSeconds(0.4)
-          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-            m_justShooterSubsystem.stopJustShooterCommand())));
+    .onTrue(ShooterCommands.createShootWhileHeldCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      -3000.0,
+      0.68,
+      0.8))
+    .onFalse(ShooterCommands.createStopShotCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      0.4));
 
   m_driverController
     .rightBumper()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_RED),
-        m_IntakeShooterSubsystem.runIntakeShooterCommand(),
-  m_justShooterSubsystem.runHighRPMJustShooterCommand(-3750.0, 0.8),
-        Commands.waitSeconds(0.8).andThen(m_FeederSubsystem.reverseFeederCommand())))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_FeederSubsystem.stopFeederCommand(),
-        Commands.waitSeconds(0.4)
-          .andThen(m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-            m_justShooterSubsystem.stopJustShooterCommand())));
+    .onTrue(ShooterCommands.createShootWhileHeldCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      -3750.0,
+      0.8,
+      0.8))
+    .onFalse(ShooterCommands.createStopShotCommand(
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      0.4));
 
   m_driverController
     .leftTrigger()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.STROBE_BLUE),
-        m_IntakeShooterSubsystem.reverseIntakeShooterCommand(),
-        m_FeederSubsystem.runFeederCommand()))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+    .onTrue(ShooterCommands.createReverseIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem))
+    .onFalse(ShooterCommands.createStopIntakeFeedCommand(
+      m_IntakeShooterSubsystem,
+      m_FeederSubsystem));
 
   m_driverController
     .leftBumper()
-    .onTrue(
-      new ParallelCommandGroup(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.TWINKLES_PARTY),
-        m_IntakeShooterSubsystem.runUnjamShooterCommand(),
-        m_justShooterSubsystem.reverseJustShooterCommand(),
-        m_FeederSubsystem.runFeederCommand()))
-    .onFalse(
-      Commands.parallel(
-        m_blinkenLEDSubsystem.setColorCommand(Blinken_LED_Subsystem.LEDColor.SOLID_GOLD),
-        m_IntakeShooterSubsystem.stopIntakeShooterCommand(),
-        m_justShooterSubsystem.stopJustShooterCommand(),
-        m_FeederSubsystem.stopFeederCommand()));
+    .whileTrue(AutoAimCommands.createDriverHubAutoAimShootCommand(
+      m_robotDrive,
+      m_IntakeShooterSubsystem,
+      m_justShooterSubsystem,
+      m_FeederSubsystem,
+      m_visionSubsystem,
+      m_driverController::getLeftY,
+      m_driverController::getLeftX,
+      m_driverController::getRightX,
+      OIConstants.kDriveDeadband));
 
   // End of button bindings. All the important buttons are wired above.
   }
@@ -301,4 +290,10 @@ public class RobotContainer {
     Command selected = m_autoChooser.getSelected();
     return selected != null ? selected : new InstantCommand();
   }
+
+  /** Accessor for vision subsystem (Limelight telemetry and pose helpers). */
+  public VisionSubsystem getVisionSubsystem() {
+    return m_visionSubsystem;
+  }
+
 }

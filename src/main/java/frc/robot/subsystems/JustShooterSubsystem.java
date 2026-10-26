@@ -132,6 +132,41 @@ public class JustShooterSubsystem extends SubsystemBase {
         this);
   }
 
+  /**
+   * Starts shooter PID if disabled, or updates PID target/output cap while already running.
+   * Useful for vision-based dynamic RPM targeting.
+   */
+  public void startOrUpdatePIDControl(double rpm, double outputCap) {
+    double safeCap = MathUtil.clamp(Math.abs(outputCap), 0.0, 1.0);
+    if (!m_pidEnabled) {
+      startPIDControlWithCap(rpm, safeCap);
+      return;
+    }
+
+    m_pidTargetRPM = rpm;
+    m_pidOutputCap = safeCap;
+  }
+
+  /** Stop PID control and shooter output. */
+  public void stopPIDControlAndShooter() {
+    stopPIDControl();
+  }
+
+  /** Current measured shooter wheel velocity in RPM. */
+  public double getMeasuredRPM() {
+    return m_encoder.getVelocity();
+  }
+
+  /** Current shooter PID target in RPM. */
+  public double getTargetRPM() {
+    return m_pidTargetRPM;
+  }
+
+  /** True when shooter closed-loop PID mode is currently active. */
+  public boolean isPIDEnabled() {
+    return m_pidEnabled;
+  }
+
   // REVERSE SHOOTER COMMAND FOR REVERSING FUEL (hold to run)
   public Command reverseJustShooterCommand() {
     return Commands.startEnd(() -> setShooterSpeed(kReverseShootSpeed), this::stopShooter, this);

@@ -120,12 +120,59 @@ public final class Constants {
   }
 
   public static final class VisionConstants {
+    public static final String kLimelightTableName = "limelight";
+    public static final int kHubTagPipeline = 0;
+
+    // 2026 Rebuilt Hub AprilTag IDs (update if your field/event uses different IDs).
+    public static final int[] kHubAprilTagIds = {11, 12, 13, 14, 15, 16};
+
     public static final double kAutoAimP = 0.02;
     public static final double kAutoAimMaxRot = 0.6;
+
+    // Dynamic shooter settings for hub targeting.
+    // Bounded between existing driver/operator shot presets:
+    // low power (right trigger): -3000 RPM @ 0.68 cap
+    // high power (right bumper): -3750 RPM @ 0.80 cap
+    public static final double kAutoAimLowShotRPM = -3000.0;
+    public static final double kAutoAimHighShotRPM = -3750.0;
+    public static final double kAutoAimLowShotOutputCap = 0.68;
+    public static final double kAutoAimHighShotOutputCap = 0.80;
+
+    // Limelight target area calibration range for interpolation
+    // (far target -> lower area, near target -> higher area).
+    public static final double kAutoAimFarTargetArea = 0.35;
+    public static final double kAutoAimNearTargetArea = 3.50;
+
+    // Piecewise area -> shooter map defaults used for LB auto-aim shot tuning.
+    // Area points should increase from far -> near. RPM is negative due to motor direction.
+    public static final double[] kAutoAimAreaMapDefaults = {0.35, 0.90, 1.80, 3.50};
+    public static final double[] kAutoAimRpmMapDefaults = {-3750.0, -3500.0, -3250.0, -3000.0};
+    public static final double[] kAutoAimOutputCapMapDefaults = {0.80, 0.76, 0.72, 0.68};
+
+    // Hysteresis thresholds for "ready" state.
+    // Enter threshold is tighter; exit threshold is looser to reduce chatter.
+    public static final double kAutoAimAimEnterToleranceDeg = 1.2;
+    public static final double kAutoAimAimExitToleranceDeg = 1.8;
+    public static final double kAutoAimRpmEnterTolerance = 140.0;
+    public static final double kAutoAimRpmExitTolerance = 220.0;
+
+    // Debounce to require stable readiness before feeding.
+    public static final double kAutoAimReadyDebounceSec = 0.20;
 
     // Pose estimator standard deviations (x, y in meters, heading in radians)
     public static final Vector<N3> kStateStdDevs = VecBuilder.fill(0.1, 0.1, 0.05);
     public static final Vector<N3> kVisionStdDevs = VecBuilder.fill(0.5, 0.5, 0.5);
+  }
+
+  public static final class ManipulatorConstants {
+    // Common intake/feeder outputs used by command factories.
+    public static final double kIntakeShootOutput = 0.4;
+    public static final double kIntakeAutoOutput = 0.35;
+    public static final double kFeederShootOutput = -0.6;
+    public static final double kFeederIntakeOutput = 0.6;
+
+    // LED state helper threshold: intake considered active when commanded below this output.
+    public static final double kIntakeActiveOutputThreshold = -0.1;
   }
 
   public static final class NeoMotorConstants {
